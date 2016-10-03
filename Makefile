@@ -5,7 +5,8 @@ readline: readline.c list.o
 	$(CC) $(FLAGS) -o $@ $^
 list.o: list.c list.h
 	$(CC) $(FLAGS) -o $@ $<
-
+instructs.o: instructs.c instructs.h
+	$(CC) $(FLAGS) -o $@ $<
 
 clean:
 	rm -f readline *~
