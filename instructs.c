@@ -42,25 +42,4 @@ int get_instr(char *name){
   return UNKNOWN;
 }
 
-int get_operand(char *op,int type_op){
-  if(isnum(ch[0])){
-    if (!(type_op&&IMMIDIATE))
-      printf("Warning: wrong operand type\n"); 
-    return atoi(op);
-  }else if(ch[0]=='%'){
-    if(ch[1]=='r'){
-      if (!(type_op&&REG))
-	printf("Warning: wrong operand type\n"); 
-      return atoi(op+2);
-    }else if(ch[1]=='f'){
-      if(!(type_op&&FREG))
-	printf("Warning: wrong operand type\n");
-      return atoi(op+2);
-    }else{
-      printf("Error: unkown operand '%s'\n",op);
-    }
-  }else{
-    printf("Error: unkown operand '%s'\n",op);
-  }
-  return ERROR;
-}
+
