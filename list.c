@@ -2,13 +2,17 @@
 #include "simulator.h"
 #include "instructs.h"
 #define INSTR_SIZE sizeof(Instruct)
-void list_init(Instr_list *instr_l){
-  instr_l->instr=(Instr_list*)malloc(INSTR_SIZE);
+Instr_list *list_init(){
+  Instr_list *instr_l;
+  instr_l=(Instr_list*)malloc(sizeof(Instr_list));
+  instr_l->instr=(Instruct*)malloc(INSTR_SIZE);
   instr_l->instr->opcode=INSTR_END;
+  instr_l->no = 0;
   int i;
   for(i=0;i<4;i++)
-    operands[i]=-1;
+    instr_l->instr->operands[i]=-1;
   instr_l->next=NULL;
+  return instr_l;
 }
 
 int list_isempty(Instr_list *instr_l){
@@ -17,9 +21,9 @@ int list_isempty(Instr_list *instr_l){
 
 void list_push(Instr_list *instr_l,Instruct *new_instr){
   Instr_list *new=(Instr_list*)malloc(sizeof(Instr_list));
-  new->instr=new_instr;
-  new->next=instr_l;
-  instr_l=new;
+  *new=*instr_l;
+  instr_l->instr=new_instr;
+  instr_l->next=new;
 }
 
 void list_free(Instr_list *instr_l){

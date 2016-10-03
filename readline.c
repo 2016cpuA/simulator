@@ -8,6 +8,11 @@
 #include "instructs.h"
 #include "list.h"
 
+int isnum(char ch){
+  return (ch>='0')&&(ch<='9');
+}
+
+
 int search(char t,char buf[],int bufsize){
   int i;
   for(i=0;i<bufsize;i++){
@@ -31,30 +36,34 @@ void print_linenum(char *text,int l){
 }
 
 int get_operand(char *op,int type_op){
-  if(isnum(ch[0])){
+  if(isnum(op[0])){
     if (!(type_op&&IMMIDIATE))
       printf("Warning: wrong operand type\n"); 
     return atoi(op);
-  }else if(ch[0]=='%'){
-    if(ch[1]=='r'){
+  }else if(op[0]=='%'){
+    if(op[1]=='r'){
       if (!(type_op&&REG))
 	printf("Warning: wrong operand type\n"); 
       return atoi(op+2);
-    }else if(ch[1]=='f'){
+    }else if(op[1]=='f'){
       if(!(type_op&&FREG))
 	printf("Warning: wrong operand type\n");
       return atoi(op+2);
     }else{
       printf("Error: unkown operand '%s'\n",op);
     }
+  }else if(op[0]=='$'){
+    if (!(type_op&&IMMIDIATE))
+      printf("Warning: wrong operand type\n"); 
+    return atoi(op+1);
   }else{
     printf("Error: unkown operand '%s'\n",op);
   }
   return ERROR;
 }
 
-void interpret(Instr_list *instr_l,char *buf,int bufsize){
-  int args = count(' ',buf,bufsize);
+void interpret(Instr_list *instr_l,char *buf,int bufsize,int no){
+  int args = count(',',buf,bufsize);
   Instruct *instr_read=(Instruct*)malloc(sizeof(Instruct));
   int pos_delim=search(' ',buf,bufsize),i;
   char *buf_cp=(char*)malloc(sizeof(char)*(bufsize+1));
@@ -68,11 +77,11 @@ void interpret(Instr_list *instr_l,char *buf,int bufsize){
     if(i==args){
       pos_delim=search('\n',now,bufsize);
       now[pos_delim]=0;
-      instr_read->operands[i]=get_operand(now,0);
+      instr_read->operands[i]=get_operand(now,7);
     }else if(i<args){
       pos_delim=search(',',now,bufsize);
       now[pos_delim]=0;
-      instr_read->operands[i]=get_operand(now,0);
+      instr_read->operands[i]=get_operand(now,7);
       now+=pos_delim+1;
       bufsize-=pos_delim+1;
     }else{
@@ -80,11 +89,11 @@ void interpret(Instr_list *instr_l,char *buf,int bufsize){
     }
   }
   Instr_list *last=instr_l;
-  while(!list_isempty(instr_l->next))
-    last=instr_l->next;
+  while(!list_isempty(last))
+    last=last->next;
+  last->no = no;
   list_push(last,instr_read);
-  free(buf_cp);
-
+  free(buf_cp);  
 }
 
 int readline(int fd){
@@ -92,8 +101,7 @@ int readline(int fd){
   char text[65536];
   int c=0,i=0,l=1;
   int pos_lf;
-  Instr_list *instr_l;
-  list_init(instr_l);
+  Instr_list *instr_l=list_init();
   text[0]=0;
   while((c=read(fd,buf,1023))>0){
     buf[c]=0;
@@ -101,7 +109,7 @@ int readline(int fd){
     i+=c;
     while((pos_lf=search('\n',text,i))>=0){
       text[pos_lf]=0;
-      interpret(instr_l,text,pos_lf+1);
+      interpret(instr_l,text,pos_lf+1,l);
       l++;
       if(i>pos_lf)
 	strcpy(tmp,text+pos_lf+1);
@@ -112,6 +120,7 @@ int readline(int fd){
     }
   }
   printf("%s",text);
+  list_free(instr_l);
   return 0;
 }
 

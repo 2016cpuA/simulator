@@ -1,16 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "instructs.h"
-#define UNKNOWN -1
-#define ERROR -2
-#define REG 1
-#define FREG 2
-#define IMMIDIATE 4
-#define NONE 0
 
-int isnum(char ch){
-  return (ch>='0')&&(ch<='9');
-}
+
 
 int get_instr(char *name){
   if(!strcmp(name,"nop")){
