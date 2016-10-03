@@ -2,11 +2,12 @@
 
 #define SIM_H
 #define MEMSIZE 65536
-
+#define REGS 16
+#define FREGS 16
 struct simulator{
-  char mem[65536];
-  int reg[16];
-  float freg[16];
+  char mem[MEMSIZE];
+  int reg[REGS];
+  float freg[FREGS];
   int cond;
   int link;
   int pc;
