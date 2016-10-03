@@ -30,6 +30,29 @@ void print_linenum(char *text,int l){
   printf("%d:\t%s\n",l,text);
 }
 
+int get_operand(char *op,int type_op){
+  if(isnum(ch[0])){
+    if (!(type_op&&IMMIDIATE))
+      printf("Warning: wrong operand type\n"); 
+    return atoi(op);
+  }else if(ch[0]=='%'){
+    if(ch[1]=='r'){
+      if (!(type_op&&REG))
+	printf("Warning: wrong operand type\n"); 
+      return atoi(op+2);
+    }else if(ch[1]=='f'){
+      if(!(type_op&&FREG))
+	printf("Warning: wrong operand type\n");
+      return atoi(op+2);
+    }else{
+      printf("Error: unkown operand '%s'\n",op);
+    }
+  }else{
+    printf("Error: unkown operand '%s'\n",op);
+  }
+  return ERROR;
+}
+
 void interpret(Instr_list *instr_l,char *buf,int bufsize){
   int args = count(' ',buf,bufsize);
   Instruct *instr_read=(Instruct*)malloc(sizeof(Instruct));
@@ -45,11 +68,11 @@ void interpret(Instr_list *instr_l,char *buf,int bufsize){
     if(i==args){
       pos_delim=search('\n',now,bufsize);
       now[pos_delim]=0;
-      instr_read->operands[i]=get_operand(now);
+      instr_read->operands[i]=get_operand(now,0);
     }else if(i<args){
       pos_delim=search(',',now,bufsize);
       now[pos_delim]=0;
-      instr_read->operands[i]=get_operand(now);
+      instr_read->operands[i]=get_operand(now,0);
       now+=pos_delim+1;
       bufsize-=pos_delim+1;
     }else{
