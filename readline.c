@@ -8,6 +8,8 @@
 #include "instructs.h"
 #include "list.h"
 
+
+
 int isnum(char ch){
   return (ch>='0')&&(ch<='9');
 }
@@ -28,10 +30,6 @@ int count(char t,char buf[], int bufsize){
       c++;
   }
   return c;
-}
-
-void print_linenum(char *text,int l){
-  printf("%d:\t%s\n",l,text);
 }
 
 int get_operand(char *op,int type_op,int no){
@@ -170,7 +168,7 @@ int readline(int fd){
   char buf[1024],tmp[65536];
   char text[65536];
   int c=0,i=0,l=1,interpret_status,ret_status=0;
-  int pos_lf;
+  int pos_lf,pos_colon;
   Instr_list *instr_l=list_init();
   text[0]=0;
   while((c=read(fd,buf,1023))>0){
@@ -178,16 +176,20 @@ int readline(int fd){
     strcat(text,buf);
     i+=c;
     while((pos_lf=search('\n',text,i))>=0){
-      text[pos_lf]=0;
-      if((interpret_status=interpret(instr_l,text,pos_lf+1,l))<0)
-	ret_status=-1;
-      if(i>pos_lf)
-	strcpy(tmp,text+pos_lf+1);
-      else
-	tmp[0]=0;
-      strcpy(text,tmp);
-      i=i-pos_lf-1;
-      l++;
+      if ((pos_colon=search(':',text,i))>0){
+	
+      }else{
+	text[pos_lf]=0;
+	if((interpret_status=interpret(instr_l,text,pos_lf+1,l))<0)
+	  ret_status=-1;
+	if(i>pos_lf)
+	  strcpy(tmp,text+pos_lf+1);
+	else
+	  tmp[0]=0;
+	strcpy(text,tmp);
+	i=i-pos_lf-1;
+	l++;
+      }
     }
   }
   list_display(instr_l);

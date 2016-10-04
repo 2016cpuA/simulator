@@ -19,11 +19,6 @@ struct instruct{
 typedef struct simulator Simulator;
 typedef struct instruct Instruct;
 
-struct label{
-  int label_no;
-  int line;
-};
-
 struct instr_list{
   int no;
   Instruct *instr;  
