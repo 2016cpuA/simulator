@@ -1,13 +1,12 @@
 #ifndef SIM_H
 
 #define SIM_H
-#define MEMSIZE 65536
+#define MEMSIZE 1<<26
 #define REGS 32
 
 struct simulator{
   char mem[MEMSIZE];
   int reg[REGS];
-  int link;
   int pc;
 };
 
