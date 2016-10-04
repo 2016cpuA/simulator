@@ -67,7 +67,7 @@ void print_instr(Instruct instr){
   case DIV: Print("DIV");break;
   case SLT: Print("SLT");break;
   case BEQ: Print("BEQ");break;
-  case BNE: Print("SUB");break;
+  case BNE: Print("BNE");break;
   case J: Print("J");break;
   case JAL: Print("JAL");break;
   case JR: Print("JR");break;
