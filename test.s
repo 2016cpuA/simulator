@@ -1,4 +1,6 @@
 main:
+	# 試験用
+	# 計算内容に深い意味は無い
 set:	
 	ADDI	%r4,%r0,0
 	ADDI	%r5,%r0,32
@@ -13,8 +15,8 @@ sum_greater:
 	ADDI	%r5,%r5,$4
 	ADDI	%r7,%r0,$0
 .L1:
-	SLT	%r8,%r1,%r2
-	BEQ	%r8,%r0,$2
+	STL	%r8,%r1,%r2
+	BEQ	%r8,%r0,.L3
 .L2:
 	ADD	%r3,%r3,%r1
 	J	.L4
@@ -24,7 +26,7 @@ sum_greater:
 	ADDI	%r7,%r7,$1
 .L5:
 	SLT	%r8,%r7,%r6
-	BNE	%r8,%r0,-13
+	BNE	%r8,%r0,.L0
 .L6:
 	ADDI	%r1,%r3,0
 .L7:

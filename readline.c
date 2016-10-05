@@ -8,6 +8,39 @@
 #include "instructs.h"
 #include "list.h"
 
+
+#define EMPTY_LINE 1
+#define NO_ERROR 0
+#define SYNTAX_ERROR -65536-1
+#define UNKNOWN_SYMBOL -65536-2
+#define UNKNOWN_INSTRUCT -65536-3
+
+
+/*空白文字の定義*/
+#define Is_Space(ch) (ch==' '||ch=='\t'||ch=='\r')
+
+int list_to_align(Instruct *instr_a,Instr_list *instr_l,int n){
+  int i;
+  Instr_list *now=instr_l;
+  for(i=0;i<n;i++){
+    instr_a[i]=*(now->instr);
+    if(i!=n-1)
+      now=now->next;
+  }
+  return 0;
+}
+
+void print_align(Instruct *instr_a,int n){
+  int i;
+  printf("no\tinstr\top1\top2\top3\top4\n");
+  for(i=0;i<n;i++){
+    printf("%d\t",i);
+    print_instr(instr_a[i]);
+    printf("\t%d\t%d\t%d\t%d\n",instr_a[i].operands[0],instr_a[i].operands[1],instr_a[i].operands[2],instr_a[i].operands[3]);
+  }
+}
+		
+
 typedef struct label{
   char name[100];
   int pc;
@@ -83,17 +116,13 @@ int get_operand(char *op,int type_op,int no,Label *labels,int n_label,int opcode
   }else{
     printf("Error(line %d): unkown operand '%s'\n",no,op);
   }
-  return ERROR;
+  return SYNTAX_ERROR;
 }
-
-#define EMPTY_LINE 1
-#define NO_ERROR 0
-#define SYNTAX_ERROR -1
 
 int search_space(char* buf,int bufsize){
   int i;
   for(i=0;i<bufsize;i++){
-    if(buf[i]==' '||buf[i]=='\t')
+    if(Is_Space(buf[i]))
       return i;
   }
   return -1;
@@ -118,12 +147,12 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
   strcpy(buf_cp,buf);
   for(i=0;i<4;i++)
     instr_read->operands[i]=0;
-  /*'!' から先はコメント*/
-  if((pos_delim=search('!',now,rest))>=0){
+  /*'#' から先はコメント*/
+  if((pos_delim=search('#',now,rest))>=0){
     now[pos_delim]=0;
     rest=pos_delim;
   }
-  while((*now==' '||*now=='\t')&&rest>0){
+  while(Is_Space(*now)&&rest>0){
     rest--;
     now++;
   }
@@ -134,7 +163,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
     now+=pos_delim+1;
     rest-=pos_delim+1;
   }
-  while((*now==' '||*now=='\t')&&rest>0){
+  while(Is_Space(*now)&&rest>0){
     rest--;
     now++;
   }
@@ -142,10 +171,10 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
     pos_delim=search_space(now,rest);
     strncpy(opcode,now,pos_delim);
     opcode[pos_delim]=0;
-    instr_read->opcode=get_instr(opcode);
+    if((instr_read->opcode=get_instr(opcode))==-1) err=UNKNOWN_INSTRUCT;
     now+=pos_delim+1;
     rest-=pos_delim+1;
-    while((*now==' '||*now=='\t')&&rest>0){
+    while(Is_Space(*now)&&rest>0){
       rest--;
       now++;
     }
@@ -161,14 +190,14 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
       strncpy(operands[i],now,pos_delim);
       operands[i][pos_delim]=0;
       instr_read->operands[i]=get_operand(operands[i],7,no,labels,n_label,instr_read->opcode);
-      if(instr_read->operands[i]==-2){
+      if(instr_read->operands[i]==SYNTAX_ERROR){
 	err=SYNTAX_ERROR;
       }
       i++;
       now+=pos_delim+1;
       rest-=pos_delim+1;
       if(now[pos_delim]=='('){
-	while((*now==' '||*now=='\t')&&rest>0){
+	while(Is_Space(*now)&&rest>0){
 	  rest--;
 	  now++;
 	}
@@ -180,14 +209,14 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
 	pos_delim=search(')',now,rest);
 	strncpy(operands[i],now,pos_delim);
 	instr_read->operands[i]=get_operand(operands[i],7,no,labels,n_label,instr_read->opcode);
-	if(instr_read->operands[i]==-2){
+	if(instr_read->operands[i]==SYNTAX_ERROR){
 	  err=SYNTAX_ERROR;
 	}
 	i++;
 	now+=pos_delim+1;
 	rest-=pos_delim+1;
       }
-      while((*now==' '||*now=='\t')&&rest>0){
+      while(Is_Space(*now)&&rest>0){
 	rest--;
 	now++;
       }
@@ -252,10 +281,11 @@ int readline(int fd,Instr_list *instr_l){
 	  now=tmp;
 	  }
 	  /*命令の無い行か?*/
-	  while(*now==' '||*now=='\t'){
+	  while(Is_Space(*now)){
 	    now++;
 	  }
-	  if (*now!=0){
+	  /*行の最後まで空白か、単行コメントがあったら空行*/
+	  if (*now!=0&&*now!='#'){
 	    l++;
 	  }
 	}else{
@@ -297,10 +327,20 @@ int readline(int fd,Instr_list *instr_l){
 
 int main(){
   Instr_list *instr_l=list_init();
+  Instruct *instr_a;
   int fd=0,l;
   l=readline(fd,instr_l);
   list_display(instr_l);
-  list_free(instr_l);
+  if(l>0){
+    instr_a=(Instruct*)malloc(l*sizeof(Instruct));
+    list_to_align(instr_a,instr_l,l);
+    list_free(instr_l);
+    print_align(instr_a,l);
+    free(instr_a);
+  }else{
+    printf("Failed to load.\n");
+    list_free(instr_l);
+  }
   printf("%d\n",l);
   return 0;
 }
