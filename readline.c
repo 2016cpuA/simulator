@@ -205,139 +205,102 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
   return err;
 }
 
-int count_labels(int fd){
+int readline(int fd,Instr_list *instr_l){
   char buf[1024],tmp[65536];
   char text[65536];
-  int c=0,i=0,l=1;
+  int c=0,i=0,l;
   int pos_lf;
+  int step=0;
   /*実行に必要な変数の定義*/
+  /*step 0*/
   int colons=0;
-  /*ここまで*/
-  text[0]=0;
-  while((c=read(fd,buf,1023))>0){
-    buf[c]=0;
-    strcat(text,buf);
-    i+=c;
-    while((pos_lf=search('\n',text,i))>=0){
-      text[pos_lf]=0;
-      /*各行に対し実行する関数*/
-      if(search(':',text,pos_lf)>=0)
-	colons++;
-      /*ここまで*/
-      if(i>pos_lf)
-	strcpy(tmp,text+pos_lf+1);
-      else
-	tmp[0]=0;
-      strcpy(text,tmp);
-      i=i-pos_lf-1;
-      l++;
-    }
-  }
-  /*実行の最後の処理*/
-  lseek(fd,0,SEEK_SET);
-  /*ここまで*/
-  return colons;
-}
-
-void search_labels(int fd,Label* labels){
-  char buf[1024],tmp[65536];
-  char text[65536];
-  int c=0,i=0,l=0;
-  int pos_lf;
-  /*実行に必要な変数の定義*/
+  /*step 1*/
+  Label *labels;
   char *now;
   int pos_colon;
   int c_label=0;
-  /*ここまで*/
-  text[0]=0;
-  while((c=read(fd,buf,1023))>0){
-    buf[c]=0;
-    strcat(text,buf);
-    i+=c;
-    while((pos_lf=search('\n',text,i))>=0){
-      text[pos_lf]=0;
-      /*各行に対し実行する処理*/
-      strcpy(tmp,text);
-      if((pos_colon=search(':',tmp,pos_lf))>0){
-	tmp[pos_colon]=0;
-	strcpy(labels[c_label].name,tmp);
-	labels[c_label].pc=l<<2;
-	c_label++;
-      }
-      if(pos_colon>=0){
-	now=tmp+pos_colon+1;
-      }else{
-	now=tmp;
-      }
-      /*命令の無い行か?*/
-      while(*now==' '||*now=='\t'){
-	now++;
-      }
-      if (*now!=0){
-	l++;
-      }
-      /*ここまで*/
-      if(i>pos_lf)
-	strcpy(tmp,text+pos_lf+1);
-      else
-	tmp[0]=0;
-      strcpy(text,tmp);
-      i=i-pos_lf-1;
-    }
-  }
-  /*実行の最後の処理*/
-  print_labels(labels,c_label);
-  lseek(fd,0,SEEK_SET);
-  /*ここまで*/
-}
-
-int readline(int fd,Label *labels,int n_label,Instr_list *instr_l){
-  char buf[1024],tmp[65536];
-  char text[65536];
-  int c=0,i=0,l=0;
-  int pos_lf;
-  /*実行に必要な変数の定義*/
+  /*step 2*/
   int interpret_status,ret_status=0;
- 
   /*ここまで*/
-  text[0]=0;
-  while((c=read(fd,buf,1023))>0){
-    buf[c]=0;
-    strcat(text,buf);
-    i+=c;
-    while((pos_lf=search('\n',text,i))>=0){
-      text[pos_lf]=0;
-      /*各行に対する処理*/
-      if((interpret_status=interpret(instr_l,text,pos_lf+1,l,labels,n_label))<0)
-	ret_status=-1;
-      if(interpret_status!=1) l++; 
-      /*ここまで*/
-      if(i>pos_lf)
-	strcpy(tmp,text+pos_lf+1);
-      else
-	tmp[0]=0;
-      strcpy(text,tmp);
-      i=i-pos_lf-1;
-      
+  for(step=0;step<3;step++){
+    /*初期化*/
+    text[0]=0;c=0;i=0;l=0;
+    /*ここまで*/
+    while((c=read(fd,buf,1023))>0){
+      buf[c]=0;
+      strcat(text,buf);
+      i+=c;
+      while((pos_lf=search('\n',text,i))>=0){
+	text[pos_lf]=0;
+	/*各行に対する処理*/
+	if(step==0){
+	  /*step 0: ラベルの数のカウント*/
+	  if(search(':',text,pos_lf)>=0)
+	    colons++;
+	}else if(step==1){
+	  /*step 1: ラベルの配列の作成*/
+	  strcpy(tmp,text);
+	  if((pos_colon=search(':',tmp,pos_lf))>0){
+	    tmp[pos_colon]=0;
+	    strcpy(labels[c_label].name,tmp);
+	    labels[c_label].pc=l<<2;
+	    c_label++;
+	  }
+	  if(pos_colon>=0){
+	    now=tmp+pos_colon+1;
+	  }else{
+	  now=tmp;
+	  }
+	  /*命令の無い行か?*/
+	  while(*now==' '||*now=='\t'){
+	    now++;
+	  }
+	  if (*now!=0){
+	    l++;
+	  }
+	}else{
+	  /*step 2: 各行の解釈*/
+	  if((interpret_status=interpret(instr_l,text,pos_lf+1,l,labels,colons))<0)
+	    ret_status=-1;
+	  if(interpret_status!=1) l++; 
+	}
+	/*ここまで*/
+	if(i>pos_lf)
+	  strcpy(tmp,text+pos_lf+1);
+	else
+	  tmp[0]=0;
+	strcpy(text,tmp);
+	i=i-pos_lf-1;
+      }
     }
+    /*実行終了時の処理*/
+    if(step==0){
+      /*step 0*/
+      lseek(fd,0,SEEK_SET);
+      labels=(Label*)malloc(colons*sizeof(Label));
+    }else if(step==1){
+      /*step 1*/
+      print_labels(labels,c_label);
+      lseek(fd,0,SEEK_SET);
+      printf("return:%d\n",get_pc(labels,colons,"return"));
+    }else{
+      /*step 2*/
+      free(labels);
+      if(ret_status==0){
+	ret_status=l;
+      }
+    }
+    /*ここまで*/
   }
-  /*実行終了時の処理*/
-
-  /*ここまで*/
   return ret_status;
 }
 
 int main(){
   Instr_list *instr_l=list_init();
-  Label *labels;
-  int fd=0;
-  int n_label = count_labels(fd);
-  labels=(Label*)malloc(n_label*sizeof(Label));
-  search_labels(fd,labels);
-  printf("return:%d\n",get_pc(labels,n_label,"return"));
-  readline(fd,labels,n_label,instr_l);
-  free(labels);
+  int fd=0,l;
+  l=readline(fd,instr_l);
   list_display(instr_l);
   list_free(instr_l);
+  printf("%d\n",l);
   return 0;
 }
