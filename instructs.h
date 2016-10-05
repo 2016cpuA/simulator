@@ -61,9 +61,9 @@ int instr_add(Simulator *sim,int rs,int rt,int rd,int sa);
 int instr_sub(Simulator *sim,int rs,int rt,int rd,int sa);
 /*rd <- rs-rt; pc++*/
 int instr_mult(Simulator *sim,int rs,int rt,int rd,int sa);
-/*(LO,HI) <- rs*rt; pc++*/
+/*rd <- (rs*rt)[31:0]; pc++*/
 int instr_div(Simulator *sim,int rs,int rt,int rd,int sa);
-/*LO <- rs/rt; HI<- rs%rt; pc++*/
+/*rd <- rs/rt; pc++*/
 int instr_slt(Simulator *sim,int rs,int rt,int rd,int sa);
 /*rd <- (if rs<rt then 1 else 0); pc++*/
 int instr_jr(Simulator *sim,int rs,int rt,int rd,int sa);
