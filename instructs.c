@@ -87,8 +87,7 @@ void print_instr(Instruct instr){
   }
 }
 
-<<<<<<< HEAD
-=======
+
 int instr_add(Simulator *sim,int rs,int rt,int rd,int sa) {
   reg[rd] = reg[rs] + reg[rt];
   sim->pc++;
@@ -224,5 +223,3 @@ int instr_j(Simulator *sim,int instr_index) {
 
 /*その命令で行う操作を記述する関数 未定義*/
 int execute_instr(Simulator* sim,Instruct instr);
-
->>>>>>> 6b14d28547250bed0fb7f2af1d854058f1d92982
