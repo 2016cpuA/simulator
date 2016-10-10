@@ -87,3 +87,142 @@ void print_instr(Instruct instr){
   }
 }
 
+<<<<<<< HEAD
+=======
+int instr_add(Simulator *sim,int rs,int rt,int rd,int sa) {
+  reg[rd] = reg[rs] + reg[rt];
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_sub(Simulator *sim,int rs,int rt,int rd,int sa) {
+  reg[rd] = reg[rs] - reg[rt];
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_mult(Simulator *sim,int rs,int rt,int rd,int sa) {
+  reg[rd] = reg[rs] * reg[rt];
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_div(Simulator *sim,int rs,int rt,int rd,int sa) {
+  reg[rd] = reg[rs] / reg[rt];
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_slt(Simulator *sim,int rs,int rt,int rd,int sa) {
+  if (reg[rs] < reg[rt]) reg[rd] = 1;
+  else reg[rd] = 0;
+  sim->pc++;
+  return reg[rd]; 
+}
+int instr_jr(Simulator *sim,int rs,int rt,int rd,int sa) {
+  sim->pc = reg[rs];
+  return reg[rd];
+}
+
+int instr_and(Simulator *sim,int rs,int rt,int rd,int sa) {
+  reg[rd] = reg[rs] & reg[rt];
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_or(Simulator *sim,int rs,int rt,int rd,int sa) {
+  reg[rd] = reg[rs] | reg[rt];
+  sim->pc++
+  return reg[rd];
+}
+
+int instr_xor(Simulator *sim,int rs,int rt,int rd,int sa) {
+  reg[rd] = reg[rs] ^ reg[rt];
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_sll(Simulator *sim,int rs,int rt,int rd,int sa) {
+  reg[rd] = (unsigned int)reg[rt] << sa;
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_sra(Simulator *sim,int rs,int rt,int rd,int sa) {
+  reg[rd] = reg[rs] >> sa;
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa) {
+  reg[rd] = (unsigned int)reg[rs] >> reg[rt];
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_in(Simulator *sim,int rs,int rt,int rd,int sa);
+/*実際の動作について説明求む*/
+int instr_out(Simulator *sim,int rs,int rt,int rd,int sa);
+/*実際の動作について説明求む*/
+
+/*形式Iの命令*/
+int instr_addi(Simulator *sim,int rs,int rt,int imm) {
+  reg[rt] = reg[rs] + imm;
+  sim->pc++;
+  return reg[rd];
+} 
+
+int instr_andi(Simulator *sim,int rs,int rt,int imm) {
+  reg[rt] = reg[rs] & imm;
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_ori(Simulator *sim,int rs,int rt,int imm) {
+  reg[rt] = reg[rs] | imm;
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_beq(Simulator *sim,int rs,int rt,int offset) {
+  if (reg[rs] = reg[rt]) sim->pc += offset;
+  else sim->pc++;
+  return reg[rd];
+}
+
+int instr_bne(Simulator *sim,int rs,int rt,int offset) {
+  if (reg[rs] != reg[rt]) sim->pc += offset;
+  else sim->pc++;
+  return reg[rd];
+}
+
+int instr_lw(Simulator *sim,int rbase,int rt,int offset) {
+  reg[rt] = sim->mem[rbase + offset];
+  sim->pc++;
+  return reg[rd];
+}
+
+int instr_sw(Simulator *sim,int rbase,int rt,int offset) {
+  sim->mem[rbase + offset] = reg[rt];
+  sim->pc++;
+  return reg[rd];
+}
+
+
+/*形式Jの命令*/
+int instr_jal(Simulator *sim,int instr_index) {
+  sim->mem[31] = sim->pc + 8;
+  sim->pc = sim->pc | (instr_index << 2);
+  return reg[rd];
+}
+
+int instr_j(Simulator *sim,int instr_index) {
+  sim->pc = sim->pc | (instr_index << 2);
+  return reg[rd];
+}
+
+
+/*その命令で行う操作を記述する関数 未定義*/
+int execute_instr(Simulator* sim,Instruct instr);
+
+>>>>>>> 6b14d28547250bed0fb7f2af1d854058f1d92982
