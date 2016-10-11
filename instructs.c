@@ -219,7 +219,3 @@ int instr_j(Simulator *sim,int instr_index) {
   sim->pc = sim->pc | (instr_index << 2);
   return reg[rd];
 }
-
-
-/*その命令で行う操作を記述する関数 未定義*/
-int execute_instr(Simulator* sim,Instruct instr);
