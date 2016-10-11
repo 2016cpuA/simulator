@@ -94,6 +94,7 @@ int make_code_r(int opcode,int rs,int rt,int rd,int sa){
 int make_code_i(int opcode,int rs,int rt,int imm){
   return opcode&(rs<<21)&(rt<<16)&(imm&0xffff);
 }
+
 int make_code_j(int opcode,int instr_index){
   return opcode&instr_index;
 }
@@ -150,7 +151,7 @@ int instr_xor(Simulator *sim,int rs,int rt,int rd,int sa) {
   Inc(sim->pc);
   return 0;
 }
-
+ 
 int instr_sll(Simulator *sim,int rs,int rt,int rd,int sa) {
   sim->reg[rd] = (int)((unsigned int)(sim->reg[rt]) << sa);
   Inc(sim->pc);
@@ -172,12 +173,14 @@ int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa) {
 /*入力方法が未定義*/
 int instr_in(Simulator *sim,int rs,int rt,int rd,int sa){
   (sim->pc)++;
+  fread(&sim->reg[rd], 4, 1, stdin);
   return 0;
 }
 
 /*出力方法が未定義*/
 int instr_out(Simulator *sim,int rs,int rt,int rd,int sa){
   (sim->pc)++;
+  fwrite(&sim->reg[rs], 4, 1, stdout);
   return 0;
 }
 
