@@ -114,7 +114,19 @@ int get_instr(char *name);
 /*命令の識別番号からアセンブラの命令名を読み取り、標準出力に出力*/
 void print_instr(Instruct instr);
 
-/*その命令で行う操作を記述する関数 未定義*/
-int execute_instr(Simulator* sim,Instruct instr);
+/*以下はfetch.cに定義されている*/
+/*命令の形式を取得する関数*/
+int judge_type(int opcode);
+#define TYPE_R 1
+#define TYPE_I 2
+#define TYPE_J 3
+#define UNKNOWN_OP -1
+
+/*Instruct型のデータから、実行する関数とその引数を返す関数*/
+int fetch_r(int (*instr)(Simulator*,int,int,int,int),int op[4],Instruct ins);
+int fetch_i(int (*instr)(Simulator*,int,int,int),int op[4],Instruct ins);
+int fetch_j(int (*instr)(Simulator*,int),int op[4],Instruct ins);
+/*バイナリコードから、命令の種類と引数を取り出す関数*/
+int code_fetch(int code,int *opcode,int op[4]);
 
 #endif
