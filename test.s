@@ -15,7 +15,7 @@ sum_greater:
 	ADDI	%r5,%r5,$4
 	ADDI	%r7,%r0,$0
 .L1:
-	STL	%r8,%r1,%r2
+	SLT	%r8,%r1,%r2
 	BEQ	%r8,%r0,.L3
 .L2:
 	ADD	%r3,%r3,%r1
