@@ -81,11 +81,11 @@ int fetch_r(int (**instr)(Simulator*,int,int,int,int),int op[4],Instruct ins){
     /* IN rd*/
   case IN: if(instr!=NULL) *instr=instr_in;
     if(op!=NULL)
-      op[0]=0;op[1]=0;op[2]=ins.operands[2];op[3]=0;break;
+      op[0]=0;op[1]=0;op[2]=ins.operands[0];op[3]=0;break;
     /* OUT rs*/
   case OUT: if(instr!=NULL) *instr=instr_out;
     if(op!=NULL)
-      op[0]=ins.operands[2];op[1]=0;op[2]=0;op[3]=0;break;
+      op[0]=ins.operands[0];op[1]=0;op[2]=0;op[3]=0;break;
   }
   return 0;
 }
