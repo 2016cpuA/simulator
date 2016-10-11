@@ -215,13 +215,20 @@ int instr_bne(Simulator *sim,int rs,int rt,int offset) {
 }
 
 int instr_lw(Simulator *sim,int rbase,int rt,int offset) {
-  sim->reg[rt] = sim->mem[sim->reg[rbase] + offset];
+  int addr=sim->reg[rbase] + offset;
+  char *memory = sim->mem;
+  sim->reg[rt] = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
   Inc(sim->pc);
   return 0;
 }
 
 int instr_sw(Simulator *sim,int rbase,int rt,int offset) {
-  sim->mem[sim->reg[rbase] + offset] = sim->reg[rt];
+  int addr=sim->reg[rbase] + offset;
+  char *memory = sim->mem;
+  memory[addr]=(char)((sim->reg[rt])&0xff);
+  memory[addr+1]=(char)(((sim->reg[rt])&0xff00)>>8);
+  memory[addr+2]=(char)(((sim->reg[rt])&0xff0000)>>16);
+  memory[addr+3]=(char)(((sim->reg[rt])&0xff000000)>>24);
   Inc(sim->pc);
   return 0;
 }
@@ -229,7 +236,7 @@ int instr_sw(Simulator *sim,int rbase,int rt,int offset) {
 
 /*形式Jの命令*/
 int instr_jal(Simulator *sim,int instr_index) {
-  sim->reg[31] = sim->pc +1;
+  sim->reg[31] = (sim->pc) +1;
   sim->pc =  instr_index ;
   return 0;
 }

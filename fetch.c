@@ -122,7 +122,7 @@ int fetch_j(int (**instr)(Simulator*,int),int op[4],Instruct ins){
   case J:*instr=instr_j;
     if(op!=NULL)
       op[0]=ins.operands[0];break;
-  case JAL:*instr=instr_j;
+  case JAL:*instr=instr_jal;
     if(op!=NULL)
       op[0]=ins.operands[0];break;
   }

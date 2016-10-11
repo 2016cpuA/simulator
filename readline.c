@@ -60,7 +60,7 @@ void print_labels(Label *labels,int n_label){
   int i;
   printf("label\tpc\n");
   for(i=0;i<n_label;i++){
-    printf("%s\t%d\n",labels[i].name,labels[i].pc);
+    printf("%s\t%d\n",labels[i].name,(labels[i].pc)>>2);
   }
 }
 
@@ -234,7 +234,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
   return err;
 }
 
-int readline(int fd,Instr_list *instr_l){
+int readline(int fd,int out_instr_fd,Instr_list *instr_l){
   char buf[1024],tmp[65536];
   char text[65536];
   int c=0,i=0,l;
@@ -310,9 +310,11 @@ int readline(int fd,Instr_list *instr_l){
       labels=(Label*)malloc(colons*sizeof(Label));
     }else if(step==1){
       /*step 1*/
-      print_labels(labels,c_label);
       lseek(fd,0,SEEK_SET);
-      printf("return:%d\n",get_pc(labels,colons,"return"));
+      if(out_instr_fd>0){
+	print_labels(labels,c_label);
+	printf("return:%d\n",get_pc(labels,colons,"return"));
+      }
     }else{
       /*step 2*/
       free(labels);
@@ -349,17 +351,17 @@ int main(){
 
 */
 
-Instruct *load_instruct(int fd,int *size){
+Instruct *load_instruct(int fd,int out_instr_fd,int *size){
   Instr_list *instr_l=list_init();
   Instruct *instr_a;
   int l;
-  l=readline(fd,instr_l);
-  list_display(instr_l);
+  l=readline(fd,out_instr_fd,instr_l);
   if(l>0){
     instr_a=(Instruct*)malloc(l*sizeof(Instruct));
     list_to_align(instr_a,instr_l,l);
     list_free(instr_l);
-    print_align(instr_a,l);
+    if(out_instr_fd>0)
+      print_align(instr_a,l);
   }else{
     printf("Failed to load.\n");
     list_free(instr_l);
