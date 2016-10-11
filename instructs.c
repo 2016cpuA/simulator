@@ -15,8 +15,8 @@ int get_instr(char *name){
     return MULT;
   }else if(!strcmp(name,"DIV")){
     return DIV;
-  }else if(!strcmp(name,"DIV")){
-    return DIV;
+  }else if(!strcmp(name,"SLT")){
+    return SLT;
   }else if(!strcmp(name,"BEQ")){
     return BEQ;
   }else if(!strcmp(name,"BNE")){
@@ -52,7 +52,7 @@ int get_instr(char *name){
   }else if(!strcmp(name,"OUT")){
     return OUT;
   }else{
-    printf("Warning: unknown instruction '%s'\n",name);
+    printf("Error: unknown instruction '%s'\n",name);
     return UNKNOWN;
   }
   return UNKNOWN;
