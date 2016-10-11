@@ -32,11 +32,11 @@ int list_to_align(Instruct *instr_a,Instr_list *instr_l,int n){
 
 void print_align(Instruct *instr_a,int n){
   int i;
-  printf("no\tinstr\top1\top2\top3\top4\n");
+  fprintf(stderr,"no\tinstr\top1\top2\top3\top4\n");
   for(i=0;i<n;i++){
-    printf("%d\t",i);
+    fprintf(stderr,"%d\t",i);
     print_instr(instr_a[i]);
-    printf("\t%d\t%d\t%d\t%d\n",instr_a[i].operands[0],instr_a[i].operands[1],instr_a[i].operands[2],instr_a[i].operands[3]);
+    fprintf(stderr,"\t%d\t%d\t%d\t%d\n",instr_a[i].operands[0],instr_a[i].operands[1],instr_a[i].operands[2],instr_a[i].operands[3]);
   }
 }
 		
