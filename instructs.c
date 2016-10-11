@@ -89,7 +89,7 @@ void print_instr(Instruct instr){
 }
 
 int make_code_r(int opcode,int rs,int rt,int rd,int sa){
-  return (opcode&0xfc00003f)&|(rs<<21)|(rt<<16)|(rd<<11)|(sa<<6);
+  return (opcode&0xfc00003f)|(rs<<21)|(rt<<16)|(rd<<11)|(sa<<6);
 }
 int make_code_i(int opcode,int rs,int rt,int imm){
   return (opcode&0xfc00003f)|(rs<<21)|(rt<<16)|(imm&0xffff);
