@@ -94,7 +94,6 @@ int make_code_r(int opcode,int rs,int rt,int rd,int sa){
 int make_code_i(int opcode,int rs,int rt,int imm){
   return opcode&(rs<<21)&(rt<<16)&(imm&0xffff);
 }
-
 int make_code_j(int opcode,int instr_index){
   return opcode&instr_index;
 }
