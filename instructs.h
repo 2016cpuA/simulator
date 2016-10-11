@@ -123,9 +123,9 @@ int judge_type(int opcode);
 #define UNKNOWN_OP -1
 
 /*Instruct型のデータから、実行する関数とその引数を返す関数*/
-int fetch_r(int (*instr)(Simulator*,int,int,int,int),int op[4],Instruct ins);
-int fetch_i(int (*instr)(Simulator*,int,int,int),int op[4],Instruct ins);
-int fetch_j(int (*instr)(Simulator*,int),int op[4],Instruct ins);
+int fetch_r(int (**instr)(Simulator*,int,int,int,int),int op[4],Instruct ins);
+int fetch_i(int (**instr)(Simulator*,int,int,int),int op[4],Instruct ins);
+int fetch_j(int (**instr)(Simulator*,int),int op[4],Instruct ins);
 /*バイナリコードから、命令の種類と引数を取り出す関数*/
 int code_fetch(int code,int *opcode,int op[4]);
 

@@ -7,7 +7,6 @@
 struct simulator{
   char mem[MEMSIZE];
   int reg[REGS];
-  int hi,lo;
   int pc;
 };
 

@@ -325,6 +325,8 @@ int readline(int fd,Instr_list *instr_l){
   return ret_status;
 }
 
+/*
+
 int main(){
   Instr_list *instr_l=list_init();
   Instruct *instr_a;
@@ -343,4 +345,25 @@ int main(){
   }
   printf("%d\n",l);
   return 0;
+}
+
+*/
+
+Instruct *load_instruct(int fd,int *size){
+  Instr_list *instr_l=list_init();
+  Instruct *instr_a;
+  int l;
+  l=readline(fd,instr_l);
+  list_display(instr_l);
+  if(l>0){
+    instr_a=(Instruct*)malloc(l*sizeof(Instruct));
+    list_to_align(instr_a,instr_l,l);
+    list_free(instr_l);
+    print_align(instr_a,l);
+  }else{
+    printf("Failed to load.\n");
+    list_free(instr_l);
+  }
+  *size=l;
+  return instr_a;
 }

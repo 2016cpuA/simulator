@@ -1,12 +1,16 @@
 CC=gcc
 FLAGS=-Wall -g
 
-readline: readline.c list.o instructs.o
-	$(CC) $(FLAGS) -o $@ $^
+simulator: simulator.c readline.o list.o instructs.o fetch.o
+	$(CC) $(FLAGS) -o $@ $^ 
+readline.o: readline.c list.o instructs.o
+	$(CC) $(FLAGS) -c $< 
 list.o: list.c list.h
 	$(CC) $(FLAGS) -c $<
-instructs.o: instructs.c instructs.h
+fetch.o: fetch.c instructs.h simulator.h
+	$(CC) $(FLAGS) -c $<
+instructs.o: instructs.c instructs.h simulator.h
 	$(CC) $(FLAGS) -c $<
 
 clean:
-	rm -f readline *~; rm -f *.o
+	rm -f readline simulator *~; rm -f *.o
