@@ -129,4 +129,8 @@ int fetch_j(int (**instr)(Simulator*,int),int op[4],Instruct ins);
 /*バイナリコードから、命令の種類と引数を取り出す関数*/
 int code_fetch(int code,int *opcode,int op[4]);
 
+/*命令をバイナリに変換する関数*/
+int make_code_r(int opcode,int rs,int rt,int rd,int sa);
+int make_code_i(int opcode,int rs,int rt,int imm);
+int make_code_j(int opcode,int instr_index);
 #endif

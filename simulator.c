@@ -28,17 +28,61 @@ void print_regs(Simulator sim){
   fprintf(stderr,"PC=%d\n",sim.pc);
 }
 
-int simulation(int program_fd,int out_instr_fd){
+void conv(int code,char buf[4]){
+  buf[0]=(char)(code&0xFF);
+  buf[1]=(char)((code&0xFF00)>>8);
+  buf[2]=(char)((code&0xFF0000)>>16);
+  buf[3]=(char)((code%0xFF000000)>>24);
+}
+
+int make_code(int out_fd,Instruct *instr,int n){
+  int i,j,op[4],instr_type,code,written=0;
+  char buf[4];
+
+  for(i=0;i<n;i++){
+    if((instr_type=judge_type(instr[i].opcode))>0){
+      switch(instr_type){
+      case TYPE_R:
+	fetch_r(NULL,op,instr[i]);
+	code=make_code_r(instr[i].opcode,op[0],op[1],op[2],op[3]);
+	conv(code,buf);
+	for(j=0;j<4;j++)
+	  written+=write(out_fd,(void*)(buf+j),1);
+	break;
+      case TYPE_I:
+	fetch_i(NULL,op,instr[i]);
+	code=make_code_i(instr[i].opcode,op[0],op[1],op[2]);
+	conv(code,buf);
+	for(j=0;j<4;j++)
+	  written+=write(out_fd,(void*)(buf+j),1);
+	break;
+      case TYPE_J:
+	fetch_j(NULL,op,instr[i]);
+	code=make_code_j(instr[i].opcode,op[0]);
+	conv(code,buf);
+	for(j=0;j<4;j++)
+	  written+=write(out_fd,(void*)(buf+j),1);
+	break;
+      }
+    }
+  }
+  return written;
+}
+
+int simulation(int program_fd,int out_instr_fd,int out_binary_fd,int execute){
   Simulator sim;
   Instruct *instr,now;
   int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
-  int n,instr_type,clocks=0;
+  int x,n,instr_type,clocks=0;
   Sim_Init(sim);
   /*命令のロード*/
   instr=load_instruct(program_fd,out_instr_fd,&n);
-  
+  if(out_binary_fd>0){
+    x=make_code(out_binary_fd,instr,n);
+    fprintf(stderr,"%d byte written\n",x);
+  }
   /*simulator実行部分*/
-  if(n>=0){
+  if(n>=0&&execute){
     while(sim.pc<n){
       /*FETCH*/
       now=instr[sim.pc];
@@ -77,15 +121,34 @@ int simulation(int program_fd,int out_instr_fd){
 }    
 
 int main(int argc,char* argv[]){
-  int program_fd;
+  int program_fd,out_binary_fd=-1;
+  int input_binary=0;
+  int binary_output=1;
+  int execute=1;
+  int debug=0;
   if (argc<1){
     fprintf(stderr,"Error: no input file\n");
   }else{
     if((program_fd=open(argv[1],O_RDONLY))<0){
       fprintf(stderr,"Error: file '%s' not found\n",argv[1]);
     }else{
-      simulation(program_fd,-1);
+      if(input_binary){
+	fprintf(stderr,"NOT IMPLEMENTED\n");
+      }else{
+	if(binary_output){
+	  if((out_binary_fd=open("a.out",O_WRONLY | O_CREAT,00666))<0){
+	    fprintf(stderr,"Error: file '%s' not found\n",argv[1]);
+	  }else{
+	    fprintf(stderr,"writing code into file '%s'\n","a.out");
+	  }
+	}
+	simulation(program_fd,-1,out_binary_fd,execute);
+      }
     }
+    close(program_fd);
+    if(out_binary_fd>0)
+      close(out_binary_fd);
   }
+  
   return 0;
 }
