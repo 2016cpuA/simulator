@@ -92,7 +92,7 @@ int get_operand(char *op,int type_op,int no,Label *labels,int n_label,int opcode
   if(isnum(op[0])){
     if (!(type_op&&IMMIDIATE))
       printf("Warning(line %d): wrong operand type\n",no); 
-    return atoi(op);
+    return strtol(op,NULL,0);
   }else if(op[0]=='%'){
     if(op[1]=='r'){
       if (!(type_op&&REG))
@@ -108,7 +108,7 @@ int get_operand(char *op,int type_op,int no,Label *labels,int n_label,int opcode
   }else if(op[0]=='$'){
     if (!(type_op&&IMMIDIATE))
       printf("Warning(line %d): wrong operand type\n",no); 
-    return atoi(op+1);
+    return strtol(op+1,NULL,0);
   }else if((pc=get_pc(labels,n_label,op))>=0){
     if((opcode==J)||(opcode==JAL))
       return (pc>>2);
@@ -273,6 +273,10 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
 	  if((pos_colon=search(':',tmp,pos_lf))>0){
 	    tmp[pos_colon]=0;
 	    strcpy(labels[c_label].name,tmp);
+	    if(!strcmp(labels[c_label].name,"SYS_EXIT")){
+	      fprintf(stderr,"Error: Name 'SYS_EXIT' could not be used as label name\n");
+	      ret_status=-1;
+	    }
 	    labels[c_label].pc=l<<2;
 	    c_label++;
 	  }
@@ -285,8 +289,8 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
 	  while(Is_Space(*now)){
 	    now++;
 	  }
-	  /*行の最後まで空白か、単行コメントがあったら空行*/
-	  if (*now!=0&&*now!='#'){
+	  /*行の最後まで空白or疑似命令('.'で始まる命令)があるor単行コメントがあったら行数をカウントしない*/
+	  if (*now!=0&&*now!='#'&&*now!='.'){
 	    l++;
 	  }
 	}else{
@@ -308,13 +312,15 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
     if(step==0){
       /*step 0*/
       lseek(fd,0,SEEK_SET);
-      labels=(Label*)malloc(colons*sizeof(Label));
+      labels=(Label*)malloc((colons+1)*sizeof(Label));
     }else if(step==1){
       /*step 1*/
       lseek(fd,0,SEEK_SET);
+      strcpy(labels[colons].name,"SYS_EXIT");
+      labels[colons].pc=(l+1)<<2;
+      colons++;
       if(output_instr_file!=NULL){
 	print_labels(labels,c_label,output_instr_file);
-	fprintf(output_instr_file,"return:%d\n\n",get_pc(labels,colons,"return"));
       }
     }else{
       /*step 2*/

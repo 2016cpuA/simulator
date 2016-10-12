@@ -30,6 +30,9 @@
 #define IN 0xEC000000
 #define OUT 0xF0000000
 
+/*疑似命令,デバッグ用*/
+#define MASK_PSEUDO 0x02000000
+
 /*バイナリコード(4byte)から要素を抜き出すためのマクロ*/
 #define Fetch_opcode(code) (((code)&0xFC000000)>>26)
 #define Fetch_rs(code) (((code)&0x3E00000)>>21)
