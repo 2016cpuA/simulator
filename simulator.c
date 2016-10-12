@@ -8,7 +8,7 @@
 #include "instructs.h"
 
 /*readline.cに定義*/
-extern Instruct *load_instruct(int fd,int out_instr_fd,int *size);
+extern Instruct *load_instruct(int fd,char* output_instr_file_name,int *size);
 
 #define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++) (sim).reg[_i]=0;(sim).pc=0;} while(0);
 
@@ -69,54 +69,61 @@ int make_code(int out_fd,Instruct *instr,int n){
   return written;
 }
 
-int simulation(int program_fd,int out_instr_fd,int out_binary_fd,int execute){
+int simulation(Instruct *instr, int n){
   Simulator sim;
-  Instruct *instr,now;
+  Instruct now;
   int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
-  int x,n,instr_type,clocks=0;
+  int instr_type,clocks=0;
   Sim_Init(sim);
-  /*命令のロード*/
-  instr=load_instruct(program_fd,out_instr_fd,&n);
-  if(out_binary_fd>0){
-    x=make_code(out_binary_fd,instr,n);
-    fprintf(stderr,"%d byte written\n",x);
-  }
   /*simulator実行部分*/
-  if(n>=0&&execute){
-    while(sim.pc<n){
-      /*FETCH*/
-      now=instr[sim.pc];
-      instr_type=judge_type(now.opcode);
-      switch(instr_type){
-      case TYPE_R: 
-	fetch_r(&instr_r,op,now);
-	break;
-      case TYPE_I:
-	fetch_i(&instr_i,op,now);
-	break;
-      case TYPE_J:
-	fetch_j(&instr_j,op,now);
-	break;
-      }
-      /*EXECUTE*/
-      switch(instr_type){
-      case TYPE_R: 
-        (*instr_r)(&sim,op[0],op[1],op[2],op[3]);
-	break;
-      case TYPE_I:
-	(*instr_i)(&sim,op[0],op[1],op[2]);
-	break;
-      case TYPE_J:
-        (*instr_j)(&sim,op[0]);
-	break;
-      }
-      clocks++;
+  fprintf(stderr,"Execution started.\n");
+  while(sim.pc<n){
+    /*FETCH*/
+    now=instr[sim.pc];
+    instr_type=judge_type(now.opcode);
+    switch(instr_type){
+    case TYPE_R: 
+      fetch_r(&instr_r,op,now);
+      break;
+    case TYPE_I:
+      fetch_i(&instr_i,op,now);
+      break;
+    case TYPE_J:
+      fetch_j(&instr_j,op,now);
+      break;
     }
-    fprintf(stderr,"Execution finished.\n");
-    print_regs(sim);
-    fprintf(stderr,"clocks: %d\n",clocks);
-    free(instr);
+    /*EXECUTE*/
+    switch(instr_type){
+    case TYPE_R: 
+      (*instr_r)(&sim,op[0],op[1],op[2],op[3]);
+      break;
+    case TYPE_I:
+      (*instr_i)(&sim,op[0],op[1],op[2]);
+      break;
+    case TYPE_J:
+      (*instr_j)(&sim,op[0]);
+      break;
+    }
+    clocks++;
   }
+  fprintf(stderr,"Execution finished.\n");
+  print_regs(sim);
+  fprintf(stderr,"clocks: %d\n",clocks);
+  free(instr);
   return 0;
 }    
 
+int _sim(int program_fd,char *output_instr_file_name,int out_binary_fd,int execute){
+  int n,written_bytes;
+  Instruct *instr;
+  /*命令のロード*/
+  instr=load_instruct(program_fd,output_instr_file_name,&n);
+  if(out_binary_fd>0){
+    written_bytes=make_code(out_binary_fd,instr,n);
+    fprintf(stderr,"%d byte written\n",written_bytes);
+  }
+  if(execute&&n>=0){
+    simulation(instr,n);
+  }
+  return 0;
+}

@@ -30,13 +30,13 @@ int list_to_align(Instruct *instr_a,Instr_list *instr_l,int n){
   return 0;
 }
 
-void print_align(Instruct *instr_a,int n){
+void print_align(Instruct *instr_a,int n,FILE* out_file){
   int i;
-  fprintf(stderr,"no\tinstr\top1\top2\top3\top4\n");
+  fprintf(out_file,"no\tinstr\top1\top2\top3\top4\n");
   for(i=0;i<n;i++){
-    fprintf(stderr,"%d\t",i);
-    print_instr(instr_a[i]);
-    fprintf(stderr,"\t%d\t%d\t%d\t%d\n",instr_a[i].operands[0],instr_a[i].operands[1],instr_a[i].operands[2],instr_a[i].operands[3]);
+    fprintf(out_file,"%d\t",i);
+    print_instr(instr_a[i],out_file);
+    fprintf(out_file,"\t%d\t%d\t%d\t%d\n",instr_a[i].operands[0],instr_a[i].operands[1],instr_a[i].operands[2],instr_a[i].operands[3]);
   }
 }
 		
@@ -56,12 +56,13 @@ int get_pc(Label *labels,int n_label,char *name_label){
   return -1;
 }
 
-void print_labels(Label *labels,int n_label){
+void print_labels(Label *labels,int n_label,FILE* out_file){
   int i;
-  printf("label\tpc\n");
+  fprintf(out_file,"label\tpc\n");
   for(i=0;i<n_label;i++){
-    printf("%s\t%d\n",labels[i].name,(labels[i].pc)>>2);
+    fprintf(out_file,"%s\t%d\n",labels[i].name,(labels[i].pc)>>2);
   }
+  fprintf(out_file,"\n");
 }
 
 int isnum(char ch){
@@ -234,7 +235,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
   return err;
 }
 
-int readline(int fd,int out_instr_fd,Instr_list *instr_l){
+int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
   char buf[1024],tmp[65536];
   char text[65536];
   int c=0,i=0,l;
@@ -311,9 +312,9 @@ int readline(int fd,int out_instr_fd,Instr_list *instr_l){
     }else if(step==1){
       /*step 1*/
       lseek(fd,0,SEEK_SET);
-      if(out_instr_fd>0){
-	print_labels(labels,c_label);
-	printf("return:%d\n",get_pc(labels,colons,"return"));
+      if(output_instr_file!=NULL){
+	print_labels(labels,c_label,output_instr_file);
+	fprintf(output_instr_file,"return:%d\n\n",get_pc(labels,colons,"return"));
       }
     }else{
       /*step 2*/
@@ -351,21 +352,31 @@ int main(){
 
 */
 
-Instruct *load_instruct(int fd,int out_instr_fd,int *size){
+Instruct *load_instruct(int fd,char* output_instr_file_name,int *size){
   Instr_list *instr_l=list_init();
   Instruct *instr_a;
   int l;
-  l=readline(fd,out_instr_fd,instr_l);
+  FILE *output_instr_file=NULL;
+  if(output_instr_file_name!=NULL){
+    output_instr_file=fopen(output_instr_file_name,"w");
+    if(output_instr_file_name==NULL){
+      fprintf(stderr,"Warning: Could not open file '%s'\n",output_instr_file_name);
+    }
+  }
+  l=readline(fd,output_instr_file,instr_l);
   if(l>0){
     instr_a=(Instruct*)malloc(l*sizeof(Instruct));
     list_to_align(instr_a,instr_l,l);
     list_free(instr_l);
-    if(out_instr_fd>0)
-      print_align(instr_a,l);
+    if(output_instr_file!=NULL)
+      print_align(instr_a,l,output_instr_file);
   }else{
     printf("Failed to load.\n");
     list_free(instr_l);
   }
   *size=l;
+  if(output_instr_file!=NULL){
+    fclose(output_instr_file);
+  }
   return instr_a;
 }

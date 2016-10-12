@@ -2,7 +2,7 @@
 #include <string.h>
 #include "instructs.h"
 
-#define Print(text) fprintf(stderr,text)
+#define Print(text) fprintf(out_file,text)
 #define Inc(pc) ((pc)++)
 
 int get_instr(char *name){
@@ -59,7 +59,7 @@ int get_instr(char *name){
   return UNKNOWN;
 }
 
-void print_instr(Instruct instr){
+void print_instr(Instruct instr,FILE* out_file){
   switch (instr.opcode){
   case ADD: Print("ADD");break;
   case ADDI: Print("ADDI");break;
