@@ -1,6 +1,6 @@
 #ifndef INSTR_H
 #include "simulator.h"
-
+#include <stdio.h>
 #define INSTR_H
 
 /* ここに命令セット */
@@ -29,6 +29,9 @@
 #define SRL 2
 #define IN 0xEC000000
 #define OUT 0xF0000000
+
+/*疑似命令,デバッグ用*/
+#define MASK_PSEUDO 0x02000000
 
 /*バイナリコード(4byte)から要素を抜き出すためのマクロ*/
 #define Fetch_opcode(code) (((code)&0xFC000000)>>26)
@@ -111,8 +114,8 @@ int instr_j(Simulator *sim,int instr_index);
 /*アセンブラの命令名を読み取るための関数
   実体はinstructs.cに記述*/
 int get_instr(char *name);
-/*命令の識別番号からアセンブラの命令名を読み取り、標準出力に出力*/
-void print_instr(Instruct instr);
+/*命令の識別番号からアセンブラの命令名を読み取り、指定したファイルストリームに出力*/
+void print_instr(Instruct instr,FILE* out_file);
 
 /*以下はfetch.cに定義されている*/
 /*命令の形式を取得する関数*/

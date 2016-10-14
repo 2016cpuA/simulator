@@ -27,7 +27,7 @@ void list_push(Instr_list *instr_l,Instruct *new_instr){
   instr_l->next=new;
 }
 
-void list_display(Instr_list *instr_l){
+void list_display(Instr_list *instr_l,FILE* out_file){
   Instruct target;
   Instr_list *now = instr_l;
   printf("no\tinstr\top1\top2\top3\top4\n");
@@ -35,7 +35,7 @@ void list_display(Instr_list *instr_l){
     while(!list_isempty(now)){
       target=*(now->instr);
       printf("%d\t",now->no);
-      print_instr(target);
+      print_instr(target,out_file);
       printf("\t%d\t%d\t%d\t%d\n",target.operands[0],target.operands[1],target.operands[2],target.operands[3]);
       now=now->next;
     }
