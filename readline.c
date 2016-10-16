@@ -87,27 +87,27 @@ int count(char t,char buf[], int bufsize){
   return c;
 }
 
-int get_operand(char *op,int type_op,int no,Label *labels,int n_label,int opcode){
+int get_operand(char *op,int type_op,int no,Label *labels,int n_label,int opcode,int d_lines){
   int pc;
   if(isnum(op[0])){
     if (!(type_op&&IMMIDIATE))
-      printf("Warning(line %d): wrong operand type\n",no); 
+      printf("Warning(line %d): wrong operand type\n",d_lines); 
     return strtol(op,NULL,0);
   }else if(op[0]=='%'){
     if(op[1]=='r'){
       if (!(type_op&&REG))
-	printf("Warning(line %d): wrong operand type\n",no);  
+	printf("Warning(line %d): wrong operand type\n",d_lines);  
       return atoi(op+2);
     }else if(op[1]=='f'){
       if(!(type_op&&FREG))
-        printf("Warning(line %d): wrong operand type\n",no); 
+        printf("Warning(line %d): wrong operand type\n",d_lines); 
       return atoi(op+2);
     }else{
-      printf("Error(line %d): unkown operand '%s'\n",no,op);
+      printf("Error(line %d): unkown operand '%s'\n",d_lines,op);
     }
   }else if(op[0]=='$'){
     if (!(type_op&&IMMIDIATE))
-      printf("Warning(line %d): wrong operand type\n",no); 
+      printf("Warning(line %d): wrong operand type\n",d_lines); 
     return strtol(op+1,NULL,0);
   }else if((pc=get_pc(labels,n_label,op))>=0){
     if((opcode==J)||(opcode==JAL))
@@ -138,7 +138,7 @@ int search_delim(char* buf,int bufsize){
   return -1;
 }
 
-int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int n_label){
+int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int n_label,int d_lines){
   char *buf_cp=(char*)malloc(sizeof(char)*(bufsize+1));
   char *now=buf_cp;
   Instruct *instr_read=(Instruct*)malloc(sizeof(Instruct));
@@ -170,8 +170,13 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
   }
   if(rest>0){
     pos_delim=search_space(now,rest);
-    strncpy(opcode,now,pos_delim);
-    opcode[pos_delim]=0;
+    if(pos_delim<0){
+      strcpy(opcode,now);
+      pos_delim=strlen(opcode);
+    }else{
+      strncpy(opcode,now,pos_delim);
+      opcode[pos_delim]=0;
+    }
     if((instr_read->opcode=get_instr(opcode))==-1) err=UNKNOWN_INSTRUCT;
     now+=pos_delim+1;
     rest-=pos_delim+1;
@@ -185,12 +190,12 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
     while(i<4&&rest>0){
       pos_delim=search_delim(now,rest);
       if (pos_delim<0){
-	if(rest==1) break;
+	if(rest==0) break;
 	pos_delim=rest;
       }
       strncpy(operands[i],now,pos_delim);
       operands[i][pos_delim]=0;
-      instr_read->operands[i]=get_operand(operands[i],7,no,labels,n_label,instr_read->opcode);
+      instr_read->operands[i]=get_operand(operands[i],7,no,labels,n_label,instr_read->opcode,d_lines);
       if(instr_read->operands[i]==SYNTAX_ERROR){
 	err=SYNTAX_ERROR;
       }
@@ -203,13 +208,13 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
 	  now++;
 	}
 	if(rest<=0){
-	  printf("Error(line %d): expected ')'",no);
+	  printf("Error(line %d): expected ')'",d_lines);
 	  err=SYNTAX_ERROR;
 	  break;
 	}
 	pos_delim=search(')',now,rest);
 	strncpy(operands[i],now,pos_delim);
-	instr_read->operands[i]=get_operand(operands[i],7,no,labels,n_label,instr_read->opcode);
+	instr_read->operands[i]=get_operand(operands[i],7,no,labels,n_label,instr_read->opcode,d_lines);
 	if(instr_read->operands[i]==SYNTAX_ERROR){
 	  err=SYNTAX_ERROR;
 	}
@@ -238,7 +243,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
 int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
   char buf[1024],tmp[65536];
   char text[65536];
-  int c=0,i=0,l;
+  int c=0,i=0,l,d_lines=0;
   int pos_lf;
   int step=0;
   /*実行に必要な変数の定義*/
@@ -295,9 +300,10 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
 	  }
 	}else{
 	  /*step 2: 各行の解釈*/
-	  if((interpret_status=interpret(instr_l,text,pos_lf+1,l,labels,colons))<0)
+	  if((interpret_status=interpret(instr_l,text,pos_lf+1,l,labels,colons,d_lines))<0)
 	    ret_status=-1;
 	  if(interpret_status!=1) l++; 
+	  d_lines++;
 	}
 	/*ここまで*/
 	if(i>pos_lf)
@@ -318,6 +324,7 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
       lseek(fd,0,SEEK_SET);
       strcpy(labels[colons].name,"SYS_EXIT");
       labels[colons].pc=(l+1)<<2;
+      c_label++;
       colons++;
       if(output_instr_file!=NULL){
 	print_labels(labels,c_label,output_instr_file);

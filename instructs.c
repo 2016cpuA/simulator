@@ -52,6 +52,12 @@ int get_instr(char *name){
     return IN;
   }else if(!strcmp(name,"OUT")){
     return OUT;
+  }else if(!strcmp(name,"CLEAR")){
+    return 0;
+  }else if(!strcmp(name,"NOP")){
+    return NOP;
+  }else if(!strcmp(name,"MOVE")){
+    return MOVE;
   }else{
     printf("Error: unknown instruction '%s'\n",name);
     return UNKNOWN;
@@ -84,6 +90,9 @@ void print_instr(Instruct instr,FILE* out_file){
   case SRL: Print("SRL");break;
   case IN: Print("IN");break;
   case OUT: Print("OUT");break;
+  case NOP: Print("NOP");break;  
+  case MOVE: Print("MOVE");break;  
+
   default: Print("#UNKNOWN#");
   }
 }
@@ -97,6 +106,21 @@ int make_code_i(int opcode,int rs,int rt,int imm){
 
 int make_code_j(int opcode,int instr_index){
   return (opcode&0xfc000000)|(instr_index&0x03ffffff);
+}
+
+int instr_nop(Simulator *sim,int rs,int rt,int rd,int sa){
+  int i;
+  Inc(sim->pc);
+  return 0;
+}
+
+int instr_clear(Simulator *sim,int rs,int rt,int rd,int sa){
+  int i;
+  for(i=0;i<REGS;i++){
+    (sim->reg[i])=0;
+  }
+  Inc(sim->pc);
+  return 0;
 }
 
 int instr_add(Simulator *sim,int rs,int rt,int rd,int sa) {
@@ -153,8 +177,12 @@ int instr_xor(Simulator *sim,int rs,int rt,int rd,int sa) {
 }
  
 int instr_sll(Simulator *sim,int rs,int rt,int rd,int sa) {
-  sim->reg[rd] = (int)((unsigned int)(sim->reg[rt]) << sa);
-  Inc(sim->pc);
+  if(rs!=0||rt!=0||rd!=0||sa!=0){
+    sim->reg[rd] = (int)((unsigned int)(sim->reg[rt]) << sa);
+    Inc(sim->pc);
+  }else{
+    instr_clear(sim,0,0,0,0);
+  }
   return 0;
 }
 
@@ -170,14 +198,12 @@ int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa) {
   return 0;
 }
 
-/*入力方法が未定義*/
 int instr_in(Simulator *sim,int rs,int rt,int rd,int sa){
   (sim->pc)++;
   fread(&sim->reg[rd], 4, 1, stdin);
   return 0;
 }
 
-/*出力方法が未定義*/
 int instr_out(Simulator *sim,int rs,int rt,int rd,int sa){
   (sim->pc)++;
   fwrite(&sim->reg[rs], 4, 1, stdout);
@@ -186,6 +212,14 @@ int instr_out(Simulator *sim,int rs,int rt,int rd,int sa){
 
 
 /*形式Iの命令*/
+
+int instr_move(Simulator *sim,int rs,int rt,int imm){
+  int i;
+  (sim->reg[rt])=(sim->reg[rs]);
+  Inc(sim->pc);
+  return 0;
+}
+
 int instr_addi(Simulator *sim,int rs,int rt,int imm) {
   sim->reg[rt] = sim->reg[rs] + imm;
   (sim->pc)++;
@@ -248,3 +282,13 @@ int instr_j(Simulator *sim,int instr_index) {
   return 0;
 }
 
+/*浮動小数点数用命令(仕様未定義)*/
+
+int instr_fadd(Simulator *sim,int rs,int rt,int rd,int sa);
+int instr_fsub(Simulator *sim,int rs,int rt,int rd,int sa);
+int instr_fmul(Simulator *sim,int rs,int rt,int rd,int sa);
+int instr_fdiv(Simulator *sim,int rs,int rt,int rd,int sa);
+int instr_finv(Simulator *sim,int rs,int rt,int rd,int sa);
+int instr_sqrt(Simulator *sim,int rs,int rt,int rd,int sa);
+int instr_sin(Simulator *sim,int rs,int rt,int rd,int sa);
+int instr_cos(Simulator *sim,int rs,int rt,int rd,int sa);

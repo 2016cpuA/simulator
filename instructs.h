@@ -29,7 +29,8 @@
 #define SRL 2
 #define IN 0xEC000000
 #define OUT 0xF0000000
-
+#define NOP 0xFC00003F
+#define MOVE 0xFE000000
 /*疑似命令,デバッグ用*/
 #define MASK_PSEUDO 0x02000000
 
@@ -59,6 +60,10 @@
   実体はinstructs.cに記述*/
 
 /*形式Rの命令*/
+int instr_clear(Simulator *sim,int rs,int rt,int rd,int sa);
+/*レジスタの初期化; pc++*/
+int instr_nop(Simulator *sim,int rs,int rt,int rd,int sa);
+/*pc++*/
 int instr_add(Simulator *sim,int rs,int rt,int rd,int sa);
 /*rd <- rs+rt; pc++*/
 int instr_sub(Simulator *sim,int rs,int rt,int rd,int sa);
@@ -89,6 +94,8 @@ int instr_out(Simulator *sim,int rs,int rt,int rd,int sa);
 /*実際の動作について説明求む*/
 
 /*形式Iの命令*/
+int instr_move(Simulator *sim,int rs,int rt,int imm);
+/*rt < -rs;pc++*/
 int instr_addi(Simulator *sim,int rs,int rt,int imm);
 /*rt <- rs+imm; pc++*/
 int instr_andi(Simulator *sim,int rs,int rt,int imm);
