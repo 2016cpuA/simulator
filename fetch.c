@@ -12,6 +12,7 @@ int judge_type(int opcode){
   switch(opcode){
   case J:
   case JAL: return TYPE_J;break;
+  case MOVE:
   case ADDI:
   case BEQ:
   case BNE:
@@ -19,6 +20,7 @@ int judge_type(int opcode){
   case SW:
   case ANDI:
   case ORI: return TYPE_I;break;
+  case NOP:
   case ADD:
   case SUB:
   case MULT:
@@ -86,12 +88,19 @@ int fetch_r(int (**instr)(Simulator*,int,int,int,int),int op[4],Instruct ins){
   case OUT: if(instr!=NULL) *instr=instr_out;
     if(op!=NULL)
       op[0]=ins.operands[0];op[1]=0;op[2]=0;op[3]=0;break;
+    /*NOP*/
+  case NOP: if(instr!=NULL) *instr=instr_out;
+    if(op!=NULL)
+      op[0]=0;op[1]=0;op[2]=0;op[3]=0;break;
   }
   return 0;
 }
 
 int fetch_i(int (**instr)(Simulator*,int,int,int),int op[4],Instruct ins){
   switch(ins.opcode){
+  case MOVE: if(instr!=NULL) *instr=instr_addi;
+    if(op!=NULL)
+      op[0]=ins.operands[1];op[1]=ins.operands[0];op[2]=0;break;
   case ADDI: if(instr!=NULL) *instr=instr_addi;
     if(op!=NULL)
       op[0]=ins.operands[1];op[1]=ins.operands[0];op[2]=ins.operands[2];break;
