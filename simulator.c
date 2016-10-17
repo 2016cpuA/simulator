@@ -69,7 +69,7 @@ int make_code(int out_fd,Instruct *instr,int n){
   return written;
 }
 
-int simulation(Instruct *instr, int n){
+int simulation(Instruct *instr, int n,int iter_max){
   Simulator sim;
   Instruct now;
   int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
@@ -77,7 +77,7 @@ int simulation(Instruct *instr, int n){
   Sim_Init(sim);
   /*simulator実行部分*/
   fprintf(stderr,"Execution started.\n");
-  while(sim.pc<n){
+  while(sim.pc<n&&clocks<iter_max){
     /*FETCH*/
     now=instr[sim.pc];
     instr_type=judge_type(now.opcode);
@@ -106,14 +106,18 @@ int simulation(Instruct *instr, int n){
     }
     clocks++;
   }
-  fprintf(stderr,"Execution finished.\n");
+  if(clocks>=iter_max){
+    fprintf(stderr,"Execution stopped; too long operation.\n");
+  }else{
+    fprintf(stderr,"Execution finished.\n");
+  }
   print_regs(sim);
   fprintf(stderr,"clocks: %d\n",clocks);
   free(instr);
   return 0;
 }    
 
-int _sim(int program_fd,char *output_instr_file_name,int out_binary_fd,int execute){
+int _sim(int program_fd,char *output_instr_file_name,int out_binary_fd,int execute,int iter_max){
   int n,written_bytes;
   Instruct *instr;
   /*命令のロード*/
@@ -123,7 +127,7 @@ int _sim(int program_fd,char *output_instr_file_name,int out_binary_fd,int execu
     fprintf(stderr,"%d byte written\n",written_bytes);
   }
   if(execute&&n>=0){
-    simulation(instr,n);
+    simulation(instr,n,iter_max);
   }
   return 0;
 }

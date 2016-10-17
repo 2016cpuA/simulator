@@ -8,7 +8,7 @@
 #include "simulator.h"
 #include "instructs.h"
 
-extern int _sim(int program_fd,char* output_instr_file_name,int out_binary_fd,int execute);
+extern int _sim(int program_fd,char* output_instr_file_name,int out_binary_fd,int execute,int iter_max);
 extern int make_code(int out_fd,Instruct *instr,int n);
 
 int main(int argc,char* argv[]){
@@ -17,6 +17,7 @@ int main(int argc,char* argv[]){
   int binary_output=0;
   int execute=1;
   int debug=0;
+  int iter_max=0x7fffffff;
   int ch;
   char _ch;
   extern char *optarg;
@@ -25,7 +26,7 @@ int main(int argc,char* argv[]){
   char *binary_file_name,*output_instr_file_name=NULL;
   int name_len;
 
-  while((ch=getopt(argc,argv,"bdnl:a:"))!=-1){
+  while((ch=getopt(argc,argv,"bdnl:a:I:"))!=-1){
     switch(ch){
     case 'b': /* read binary */
       input_binary=1;
@@ -47,6 +48,9 @@ int main(int argc,char* argv[]){
       name_len=strlen(optarg);
       binary_file_name=(char*)malloc((name_len+1)*sizeof(char));
       strcpy(binary_file_name,optarg);
+      break;
+    case 'I':
+      iter_max=atoi(optarg);
       break;
     default: /* unknown option */
       _ch=(char)ch;
@@ -70,7 +74,7 @@ int main(int argc,char* argv[]){
 	  }
 	  free(binary_file_name);
 	}
-	_sim(program_fd,output_instr_file_name,out_binary_fd,execute);
+	_sim(program_fd,output_instr_file_name,out_binary_fd,execute,iter_max);
       }
     }
     close(program_fd);
