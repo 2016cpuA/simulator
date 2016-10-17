@@ -140,7 +140,7 @@ int get_operand(char *op,int type_op,int no,Label *labels,int n_label,int opcode
       else
 	return (pc>>2)-no;
     }else{
-      printf("Error(line %d): unkown operand '%s'\n",no,buf);
+      printf("Error(line %d): unkown operand '%s'\n",d_lines,buf);
     }
   }
   return SYNTAX_ERROR;
@@ -251,7 +251,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
 int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
   char buf[1024],tmp[65536];
   char text[65536];
-  int c=0,i=0,l,d_lines=0;
+  int c=0,i=0,l;
   int pos_lf;
   int step=0;
   /*実行に必要な変数の定義*/
@@ -263,7 +263,7 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
   int pos_colon;
   int c_label=0;
   /*step 2*/
-  int interpret_status,ret_status=0;
+  int interpret_status,ret_status=0,d_lines=1;
   /*ここまで*/
   for(step=0;step<3;step++){
     /*初期化*/
@@ -331,7 +331,7 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
       /*step 1*/
       lseek(fd,0,SEEK_SET);
       strcpy(labels[colons].name,"SYS_EXIT");
-      labels[colons].pc=(l+1)<<2;
+      labels[colons].pc=l<<2;
       c_label++;
       colons++;
       if(output_instr_file!=NULL){
