@@ -177,22 +177,29 @@ int instr_xor(Simulator *sim,int rs,int rt,int rd,int sa) {
  
 int instr_sll(Simulator *sim,int rs,int rt,int rd,int sa) {
   if(rs!=0||rt!=0||rd!=0||sa!=0){
-    sim->reg[rd] = (int)((unsigned int)(sim->reg[rt]) << sa);
+    sim->reg[rd] = (sim->reg[rt]) << sa;
     Inc(sim->pc);
   }else{
     instr_clear(sim,0,0,0,0);
   }
   return 0;
 }
+#define Sgn(x) ((x)<0?-2147483648:0)
 
 int instr_sra(Simulator *sim,int rs,int rt,int rd,int sa) {
-  sim->reg[rd] = sim->reg[rs] >> sa;
+  sim->reg[rd] = (sim->reg[rt]) >> sa;
   Inc(sim->pc);
   return 0;
 }
-
+union _int{
+  int i;
+  unsigned int u;
+};
 int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa) {
-  sim->reg[rd] = (int)((unsigned int)(sim->reg[rs]) >> sa);
+  union _int i;
+  i.i=sim->reg[rt];
+  i.u=i.u>>sa;
+  sim->reg[rd] = i.i;
   Inc(sim->pc);
   return 0;
 }
