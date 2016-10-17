@@ -109,7 +109,6 @@ int make_code_j(int opcode,int instr_index){
 }
 
 int instr_nop(Simulator *sim,int rs,int rt,int rd,int sa){
-  int i;
   Inc(sim->pc);
   return 0;
 }
@@ -214,7 +213,6 @@ int instr_out(Simulator *sim,int rs,int rt,int rd,int sa){
 /*形式Iの命令*/
 
 int instr_move(Simulator *sim,int rs,int rt,int imm){
-  int i;
   (sim->reg[rt])=(sim->reg[rs]);
   Inc(sim->pc);
   return 0;
