@@ -87,8 +87,27 @@ int count(char t,char buf[], int bufsize){
   return c;
 }
 
+int search_space(char* buf,int bufsize){
+  int i;
+  for(i=0;i<bufsize;i++){
+    if(Is_Space(buf[i]))
+      return i;
+  }
+  return -1;
+}
+
+int search_delim(char* buf,int bufsize){
+  int i;
+  for(i=0;i<bufsize;i++){
+    if(buf[i]==','||buf[i]=='(')
+      return i;
+  }
+  return -1;
+}
+
 int get_operand(char *op,int type_op,int no,Label *labels,int n_label,int opcode,int d_lines){
-  int pc;
+  int pc,pos_space;
+  char buf[32];
   if(isnum(op[0])){
     if (!(type_op&&IMMIDIATE))
       printf("Warning(line %d): wrong operand type\n",d_lines); 
@@ -109,33 +128,22 @@ int get_operand(char *op,int type_op,int no,Label *labels,int n_label,int opcode
     if (!(type_op&&IMMIDIATE))
       printf("Warning(line %d): wrong operand type\n",d_lines); 
     return strtol(op+1,NULL,0);
-  }else if((pc=get_pc(labels,n_label,op))>=0){
-    if((opcode==J)||(opcode==JAL))
-      return (pc>>2);
-    else
-      return (pc>>2)-no;
-  }else{
-    printf("Error(line %d): unkown operand '%s'\n",no,op);
+  }else {
+    if((pos_space=search_space(op,strlen(op)))>=0){
+      strncpy(buf,op,pos_space);
+    }else{
+      strcpy(buf,op);
+    }
+    if((pc=get_pc(labels,n_label,buf))>=0){
+      if((opcode==J)||(opcode==JAL))
+	return (pc>>2);
+      else
+	return (pc>>2)-no;
+    }else{
+      printf("Error(line %d): unkown operand '%s'\n",no,buf);
+    }
   }
   return SYNTAX_ERROR;
-}
-
-int search_space(char* buf,int bufsize){
-  int i;
-  for(i=0;i<bufsize;i++){
-    if(Is_Space(buf[i]))
-      return i;
-  }
-  return -1;
-}
-
-int search_delim(char* buf,int bufsize){
-  int i;
-  for(i=0;i<bufsize;i++){
-    if(buf[i]==','||buf[i]=='(')
-      return i;
-  }
-  return -1;
 }
 
 int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int n_label,int d_lines){
