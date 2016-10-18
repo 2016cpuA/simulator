@@ -12,7 +12,8 @@ extern Instruct *load_instruct(int fd,char* output_instr_file_name,int *size);
 
 #define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++) (sim).reg[_i]=0;(sim).pc=0;} while(0);
 
-int iter_max;
+/*オプションから受け取った変数*/
+int iter_max,debug;
 
 void print_regs(Simulator sim){
   int i;
@@ -119,7 +120,61 @@ int simulation(Instruct *instr, int n){
   return 0;
 }    
 
-int _sim(int program_fd,char *output_instr_file_name,int out_binary_fd,int execute,int debug){
+int step_simulation(Instruct *instr, int n) {
+  Simulator sim;
+  Instruct now;
+  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
+  int instr_type,clocks=0;
+  int ch;
+  Sim_Init(sim);
+  /*simulator実行部分*/
+  fprintf(stderr,"Execution started.\n");
+  while(sim.pc<n && ((ch = getchar()) == '\n')){
+    if(ch == EOF) {
+      fprintf(stderr,"step simulation cancelled.\n");
+      break;
+    }
+    /*FETCH*/
+    now=instr[sim.pc];
+    instr_type=judge_type(now.opcode);
+    switch(instr_type){
+      case TYPE_R: 
+      fetch_r(&instr_r,op,now);
+      break;
+      case TYPE_I:
+      fetch_i(&instr_i,op,now);
+      break;
+      case TYPE_J:
+      fetch_j(&instr_j,op,now);
+      break;
+    }
+    /*EXECUTE*/
+    switch(instr_type){
+      case TYPE_R: 
+      (*instr_r)(&sim,op[0],op[1],op[2],op[3]);
+      break;
+      case TYPE_I:
+      (*instr_i)(&sim,op[0],op[1],op[2]);
+      break;
+      case TYPE_J:
+      (*instr_j)(&sim,op[0]);
+      break;
+    }
+    clocks++;
+
+    fprintf(stderr,"STEP No.%d.\n", sim.pc);
+    print_regs(sim);
+    fprintf(stderr,"clocks: %d\n\n",clocks);
+  }
+
+  fprintf(stderr,"Execution finished.\n");
+  print_regs(sim);
+  fprintf(stderr,"clocks: %d\n",clocks);
+  free(instr);
+  return 0;
+}
+
+int _sim(int program_fd,char *output_instr_file_name,int out_binary_fd,int execute){
   int n,written_bytes;
   Instruct *instr;
   /*命令のロード*/
@@ -130,7 +185,7 @@ int _sim(int program_fd,char *output_instr_file_name,int out_binary_fd,int execu
   }
   if(execute&&n>=0){
     if(debug) step_simulation(instr,n);
-    simulation(instr,n);
+    else simulation(instr,n);
   }
   return 0;
 }
