@@ -19,6 +19,31 @@
 /*空白文字の定義*/
 #define Is_Space(ch) (ch==' '||ch=='\t'||ch=='\r')
 
+/*ラベル構造体の定義*/
+typedef struct label{
+  char name[100];
+  int pc;
+} Label;
+/*ラベルの数*/
+int n_label;
+/*ラベルの配列*/
+Label *labels;
+/*読み込み中の行数*/
+int d_lines;
+/*命令列出力用のファイルストリーム*/
+FILE *output_instr_file;
+
+/*Utilities*/
+int get_pc(Label *labels,char *name_label){
+  int i;
+  for(i=0;i<n_label;i++){
+    if(!strcmp(labels[i].name,name_label)){
+      return labels[i].pc;
+    }
+  }
+  return -1;
+}
+
 int list_to_align(Instruct *instr_a,Instr_list *instr_l,int n){
   int i;
   Instr_list *now=instr_l;
@@ -40,27 +65,11 @@ void print_align(Instruct *instr_a,int n,FILE* out_file){
   }
 }
 		
-
-typedef struct label{
-  char name[100];
-  int pc;
-} Label;
-
-int get_pc(Label *labels,int n_label,char *name_label){
-  int i;
-  for(i=0;i<n_label;i++){
-    if(!strcmp(labels[i].name,name_label)){
-      return labels[i].pc;
-    }
-  }
-  return -1;
-}
-
 void print_labels(Label *labels,int n_label,FILE* out_file){
   int i;
   fprintf(out_file,"label\tpc\n");
   for(i=0;i<n_label;i++){
-    fprintf(out_file,"%s\t%d\n",labels[i].name,(labels[i].pc)>>2);
+    fprintf(out_file,"%s\t%d\n",labels[i].name,labels[i].pc);
   }
   fprintf(out_file,"\n");
 }
@@ -105,8 +114,10 @@ int search_delim(char* buf,int bufsize){
   return -1;
 }
 
-int get_operand(char *op,int type_op,int no,Label *labels,int n_label,int opcode,int d_lines){
-  int pc,pos_space;
+/*Parser本体*/
+/*オペランド部分のみ*/
+int get_operand(char *op,int type_op,int pc,int opcode){
+  int dest_pc,pos_space;
   char buf[32];
   if(isnum(op[0])){
     if (!(type_op&&IMMIDIATE))
@@ -128,25 +139,31 @@ int get_operand(char *op,int type_op,int no,Label *labels,int n_label,int opcode
     if (!(type_op&&IMMIDIATE))
       printf("Warning(line %d): wrong operand type\n",d_lines); 
     return strtol(op+1,NULL,0);
-  }else {
+  }else{
     if((pos_space=search_space(op,strlen(op)))>=0){
       strncpy(buf,op,pos_space);
     }else{
       strcpy(buf,op);
     }
-    if((pc=get_pc(labels,n_label,buf))>=0){
+    if((dest_pc=get_pc(labels,buf))>=0){
       if((opcode==J)||(opcode==JAL))
-	return (pc>>2);
+	return dest_pc;
       else
-	return (pc>>2)-no;
+	return dest_pc-pc;
     }else{
       printf("Error(line %d): unkown operand '%s'\n",d_lines,buf);
     }
   }
   return SYNTAX_ERROR;
 }
-
-int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int n_label,int d_lines){
+/*行単位のパース*/
+/*ブレークポイントのフラグ*/
+int is_break=0;
+/*テキストセクションかデータセクションか*/
+int section=1;
+#define SECTION_TEXT 1
+#define SECTION_DATA 0
+int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
   char *buf_cp=(char*)malloc(sizeof(char)*(bufsize+1));
   char *now=buf_cp;
   Instruct *instr_read=(Instruct*)malloc(sizeof(Instruct));
@@ -161,7 +178,9 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
     now[pos_delim]=0;
     rest=pos_delim;
   }
-  while(Is_Space(*now)&&rest>0){
+  while((Is_Space(*now)||*now=='!')&&rest>0){
+    if(*now=='!')
+      is_break=1;
     rest--;
     now++;
   }
@@ -185,6 +204,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
       strncpy(opcode,now,pos_delim);
       opcode[pos_delim]=0;
     }
+    is_break=0;
     if((instr_read->opcode=get_instr(opcode))==-1) err=UNKNOWN_INSTRUCT;
     now+=pos_delim+1;
     rest-=pos_delim+1;
@@ -203,7 +223,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
       }
       strncpy(operands[i],now,pos_delim);
       operands[i][pos_delim]=0;
-      instr_read->operands[i]=get_operand(operands[i],7,no,labels,n_label,instr_read->opcode,d_lines);
+      instr_read->operands[i]=get_operand(operands[i],7,pc,instr_read->opcode);
       if(instr_read->operands[i]==SYNTAX_ERROR){
 	err=SYNTAX_ERROR;
       }
@@ -222,7 +242,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
 	}
 	pos_delim=search(')',now,rest);
 	strncpy(operands[i],now,pos_delim);
-	instr_read->operands[i]=get_operand(operands[i],7,no,labels,n_label,instr_read->opcode,d_lines);
+	instr_read->operands[i]=get_operand(operands[i],7,pc,instr_read->opcode);
 	if(instr_read->operands[i]==SYNTAX_ERROR){
 	  err=SYNTAX_ERROR;
 	}
@@ -237,7 +257,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
     }
     while(!list_isempty(last))
       last=last->next;
-    last->no = no;
+    last->no = pc;
     list_push(last,instr_read);
     free(buf_cp);
   }else{
@@ -248,7 +268,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int no,Label *labels,int
   return err;
 }
 
-int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
+int readline(int fd,Instr_list *instr_l){
   char buf[1024],tmp[65536];
   char text[65536];
   int c=0,i=0,l;
@@ -258,12 +278,11 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
   /*step 0*/
   int colons=0;
   /*step 1*/
-  Label *labels;
   char *now;
   int pos_colon;
-  int c_label=0;
   /*step 2*/
-  int interpret_status,ret_status=0,d_lines=1;
+  int interpret_status,ret_status=0;
+  int is_break;
   /*ここまで*/
   for(step=0;step<3;step++){
     /*初期化*/
@@ -285,21 +304,21 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
 	  strcpy(tmp,text);
 	  if((pos_colon=search(':',tmp,pos_lf))>0){
 	    tmp[pos_colon]=0;
-	    strcpy(labels[c_label].name,tmp);
-	    if(!strcmp(labels[c_label].name,"SYS_EXIT")){
+	    strcpy(labels[colons].name,tmp);
+	    if(!strcmp(labels[colons].name,"SYS_EXIT")){
 	      fprintf(stderr,"Error: Name 'SYS_EXIT' could not be used as label name\n");
 	      ret_status=-1;
 	    }
-	    labels[c_label].pc=l<<2;
-	    c_label++;
+	    labels[colons].pc=l;
+	    colons++;
 	  }
 	  if(pos_colon>=0){
 	    now=tmp+pos_colon+1;
 	  }else{
-	  now=tmp;
+	    now=tmp;
 	  }
 	  /*命令の無い行か?*/
-	  while(Is_Space(*now)){
+	  while(Is_Space(*now)||*now=='!'){
 	    now++;
 	  }
 	  /*行の最後まで空白or疑似命令('.'で始まる命令)があるor単行コメントがあったら行数をカウントしない*/
@@ -308,7 +327,7 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
 	  }
 	}else{
 	  /*step 2: 各行の解釈*/
-	  if((interpret_status=interpret(instr_l,text,pos_lf+1,l,labels,colons,d_lines))<0)
+	  if((interpret_status=interpret(instr_l,text,pos_lf+1,l))<0)
 	    ret_status=-1;
 	  if(interpret_status!=1) l++; 
 	  d_lines++;
@@ -327,16 +346,17 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
       /*step 0*/
       lseek(fd,0,SEEK_SET);
       labels=(Label*)malloc((colons+1)*sizeof(Label));
+      n_label=colons+1;
+      colons=0;
     }else if(step==1){
       /*step 1*/
       lseek(fd,0,SEEK_SET);
       strcpy(labels[colons].name,"SYS_EXIT");
-      labels[colons].pc=l<<2;
-      c_label++;
-      colons++;
+      labels[colons].pc=l;
       if(output_instr_file!=NULL){
-	print_labels(labels,c_label,output_instr_file);
+	print_labels(labels,n_label,output_instr_file);
       }
+      d_lines=1;
     }else{
       /*step 2*/
       free(labels);
@@ -349,42 +369,19 @@ int readline(int fd,FILE* output_instr_file,Instr_list *instr_l){
   return ret_status;
 }
 
-/*
-
-int main(){
-  Instr_list *instr_l=list_init();
-  Instruct *instr_a;
-  int fd=0,l;
-  l=readline(fd,instr_l);
-  list_display(instr_l);
-  if(l>0){
-    instr_a=(Instruct*)malloc(l*sizeof(Instruct));
-    list_to_align(instr_a,instr_l,l);
-    list_free(instr_l);
-    print_align(instr_a,l);
-    free(instr_a);
-  }else{
-    printf("Failed to load.\n");
-    list_free(instr_l);
-  }
-  printf("%d\n",l);
-  return 0;
-}
-
-*/
-
 Instruct *load_instruct(int fd,char* output_instr_file_name,int *size){
   Instr_list *instr_l=list_init();
   Instruct *instr_a;
   int l;
-  FILE *output_instr_file=NULL;
+  /*命令列出力用のファイルのオープン*/
+  output_instr_file=NULL;
   if(output_instr_file_name!=NULL){
     output_instr_file=fopen(output_instr_file_name,"w");
     if(output_instr_file_name==NULL){
       fprintf(stderr,"Warning: Could not open file '%s'\n",output_instr_file_name);
     }
   }
-  l=readline(fd,output_instr_file,instr_l);
+  l=readline(fd,instr_l);
   if(l>0){
     instr_a=(Instruct*)malloc(l*sizeof(Instruct));
     list_to_align(instr_a,instr_l,l);

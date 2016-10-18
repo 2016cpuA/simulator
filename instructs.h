@@ -31,9 +31,20 @@
 #define OUT 0xF0000000
 #define NOP 0xFC00003F
 #define MOVE 0xFE000000
-/*疑似命令,デバッグ用*/
-#define MASK_PSEUDO 0x02000000
-
+/*アセンブラ指令,デバッグ用命令 バイナリファイルには含めない命令*/
+#define MASK_ASSEM_INSTR 0x02000000
+/* .text textセクションの開始*/
+#define _TEXT 0x02000100
+/* .data dataセクションの開始*/
+#define _DATA 0x02000200
+/* .align n  メモリ上のデータの配置を2^nバイト毎に行う*/
+#define _ALIGN 0x02000300
+/* .word n 整数nを表す1wordのデータをメモリ上に配置 */ 
+#define _WORD 0x02000400
+/* .globl label  labelをリンカに登録する 開始時のエントリポイントの指定*/
+#define _GLOBL 0x02000500
+/* .break  この命令の位置にブレークポイントを設定  '!' でも可?*/
+#define _BREAK 0x03000000
 /*バイナリコード(4byte)から要素を抜き出すためのマクロ*/
 #define Fetch_opcode(code) (((code)&0xFC000000)>>26)
 #define Fetch_rs(code) (((code)&0x3E00000)>>21)
