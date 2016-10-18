@@ -9,18 +9,24 @@
 #include "instructs.h"
 
 /*simulator.c*/
-extern int _sim(int program_fd,char* output_instr_file_name,int out_binary_fd,int execute);
+extern int _sim(int program_fd,char* output_instr_file_name,int out_binary_fd);
 extern int make_code(int out_fd,Instruct *instr,int n);
 extern int iter_max;
 extern int debug;
+extern int execute;
+/*instructs.c*/
+extern FILE *input_file;
+extern FILE *output_file;
 
 int main(int argc,char* argv[]){
   int program_fd,out_binary_fd=-1;
   int input_binary=0;
   int binary_output=0;
-  int execute=1;
+  execute=1;
   debug=0;
   iter_max=0x7fffffff;
+  input_file=stdin;
+  output_file=stdout;
   int ch;
   char _ch;
   extern char *optarg;
@@ -29,13 +35,21 @@ int main(int argc,char* argv[]){
   char *binary_file_name,*output_instr_file_name=NULL;
   int name_len;
 
-  while((ch=getopt(argc,argv,"bdnl:a:I:"))!=-1){
+  while((ch=getopt(argc,argv,"bdni:o:l:a:I:"))!=-1){
     switch(ch){
     case 'b': /* read binary */
       input_binary=1;
       break;
     case 'd': /* debug mode */
       debug=1;
+      break;
+    case 'i': /* input file */
+      fprintf(stderr,"input file: %s\n",optarg);
+      input_file=fopen(optarg,"r");
+      break;
+    case 'o': /* output file */
+      fprintf(stderr,"output file: %s\n",optarg);
+      output_file=fopen(optarg,"w");
       break;
     case 'n': /* no simulation */
       execute=0;
@@ -76,7 +90,7 @@ int main(int argc,char* argv[]){
 	  }
 	  free(binary_file_name);
 	}
-	_sim(program_fd,output_instr_file_name,out_binary_fd,execute);
+	_sim(program_fd,output_instr_file_name,out_binary_fd);
       }
     }
     close(program_fd);
@@ -86,5 +100,9 @@ int main(int argc,char* argv[]){
   if(output_instr_file_name!=NULL){
     free(output_instr_file_name);
   }
+  if(input_file!=stdin)
+    fclose(input_file);
+  if(output_file!=stdout)
+    fclose(output_file);
   return 0;
 }

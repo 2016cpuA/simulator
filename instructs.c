@@ -5,6 +5,9 @@
 #define Print(text) fprintf(out_file,text)
 #define Inc(pc) ((pc)++)
 
+FILE *input_file;
+FILE *output_file;
+
 int get_instr(char *name){
   if(!strcmp(name,"ADD")){
     return ADD;
@@ -206,13 +209,13 @@ int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa) {
 
 int instr_in(Simulator *sim,int rs,int rt,int rd,int sa){
   (sim->pc)++;
-  fread(&sim->reg[rd], 4, 1, stdin);
+  fread(&sim->reg[rd], 4, 1, input_file);
   return 0;
 }
 
 int instr_out(Simulator *sim,int rs,int rt,int rd,int sa){
   (sim->pc)++;
-  fwrite(&sim->reg[rs], 4, 1, stdout);
+  fwrite(&sim->reg[rs], 4, 1, output_file);
   return 0;
 }
 

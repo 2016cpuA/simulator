@@ -13,7 +13,7 @@ extern Instruct *load_instruct(int fd,char* output_instr_file_name,int *size);
 #define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++) (sim).reg[_i]=0;(sim).pc=0;} while(0);
 
 /*オプションから受け取った変数*/
-int iter_max,debug;
+int iter_max,debug,execute;
 
 void print_regs(Simulator sim){
   int i;
@@ -129,11 +129,7 @@ int step_simulation(Instruct *instr, int n) {
   Sim_Init(sim);
   /*simulator実行部分*/
   fprintf(stderr,"Execution started.\n");
-  while(sim.pc<n && ((ch = getchar()) == '\n')){
-    if(ch == EOF) {
-      fprintf(stderr,"step simulation cancelled.\n");
-      break;
-    }
+  while(sim.pc<n){
     /*FETCH*/
     now=instr[sim.pc];
     instr_type=judge_type(now.opcode);
@@ -165,6 +161,11 @@ int step_simulation(Instruct *instr, int n) {
     fprintf(stderr,"STEP No.%d.\n", sim.pc);
     print_regs(sim);
     fprintf(stderr,"clocks: %d\n\n",clocks);
+    while((ch = getchar()) != '\n');
+    if(ch == EOF) {
+      fprintf(stderr,"step simulation cancelled.\n");
+      break;
+    }
   }
 
   fprintf(stderr,"Execution finished.\n");
@@ -174,7 +175,7 @@ int step_simulation(Instruct *instr, int n) {
   return 0;
 }
 
-int _sim(int program_fd,char *output_instr_file_name,int out_binary_fd,int execute){
+int _sim(int program_fd,char *output_instr_file_name,int out_binary_fd){
   int n,written_bytes;
   Instruct *instr;
   /*命令のロード*/
