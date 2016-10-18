@@ -12,8 +12,8 @@ extern Instruct *load_instruct(int fd,char* output_instr_file_name,int *size);
 
 #define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++) (sim).reg[_i]=0;(sim).pc=0;} while(0);
 #define Is_break(opcode) ((opcode)&_BREAK)
-
-
+#define Clear_break(opcode) ((opcode)&MASK_OP_FUN)
+#define Set_break(opcode) ((opcode)|_BREAK)
 /*オプションから受け取った変数*/
 int iter_max,debug,execute;
 
