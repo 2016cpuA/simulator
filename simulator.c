@@ -137,10 +137,23 @@ int step_simulation(Instruct *instr, int n) {
     /*FETCH*/
     now=instr[sim.pc];
     stop=Is_break(now.opcode);
-    if(stop){
-      fprintf(stderr,"executed: ");
+    if(stop||flag==STEP){
+      fprintf(stderr,"STEP No.%d.\n", sim.pc);
+      print_regs(sim);
+      fprintf(stderr,"clocks: %d\n",clocks);
+      fprintf(stderr,"next instruct: ");
       print_instr(instr[sim.pc],stderr);
       fprintf(stderr,"\n");
+      while((ch = getchar())!=EOF){
+	if(ch=='\n') break;
+	if(ch=='s') flag=STEP;
+	else if(ch=='c') flag=CONTINUE;
+	else fprintf(stderr,"sim: Unknown command\n");
+      }
+      if(ch == EOF) {
+	fprintf(stderr,"step simulation cancelled.\n");
+	break;
+      }
     }
     instr_type=judge_type(now.opcode);
     switch(instr_type){
@@ -167,24 +180,6 @@ int step_simulation(Instruct *instr, int n) {
       break;
     }
     clocks++;
-    if(stop||flag==STEP){
-      fprintf(stderr,"STEP No.%d.\n", sim.pc);
-      print_regs(sim);
-      fprintf(stderr,"clocks: %d\n",clocks);
-      fprintf(stderr,"next instruct: ");
-      print_instr(instr[sim.pc],stderr);
-      fprintf(stderr,"\n");
-      while((ch = getchar())!=EOF){
-	if(ch=='\n') break;
-	if(ch=='s') flag=STEP;
-	else if(ch=='c') flag=CONTINUE;
-	else fprintf(stderr,"sim: Unknown command\n");
-      }
-      if(ch == EOF) {
-	fprintf(stderr,"step simulation cancelled.\n");
-	break;
-      }
-    }
   }
 
   fprintf(stderr,"Execution finished.\n");
