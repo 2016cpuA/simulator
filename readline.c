@@ -119,6 +119,7 @@ int search_delim(char* buf,int bufsize){
 int get_operand(char *op,int type_op,int pc,int opcode){
   int dest_pc,pos_space;
   char buf[32];
+  int op_fun;
   if(isnum(op[0])){
     if (!(type_op&&IMMIDIATE))
       printf("Warning(line %d): wrong operand type\n",d_lines); 
@@ -146,7 +147,8 @@ int get_operand(char *op,int type_op,int pc,int opcode){
       strcpy(buf,op);
     }
     if((dest_pc=get_pc(labels,buf))>=0){
-      if((opcode==J)||(opcode==JAL))
+      op_fun=opcode&MASK_OP_FUN;
+      if((op_fun==J)||(op_fun==JAL))
 	return dest_pc;
       else
 	return dest_pc-pc;
@@ -191,10 +193,12 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
     now+=pos_delim+1;
     rest-=pos_delim+1;
   }
-  while(Is_Space(*now)&&rest>0){
+  while((Is_Space(*now)||*now=='!')&&rest>0){
+    if(*now=='!')
+      is_break=1;
     rest--;
     now++;
-  }
+  }  
   if(rest>0){
     pos_delim=search_space(now,rest);
     if(pos_delim<0){
@@ -204,8 +208,11 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
       strncpy(opcode,now,pos_delim);
       opcode[pos_delim]=0;
     }
-    is_break=0;
     if((instr_read->opcode=get_instr(opcode))==-1) err=UNKNOWN_INSTRUCT;
+    if(is_break){
+      (instr_read->opcode)|= _BREAK ;
+      is_break=0;
+    }
     now+=pos_delim+1;
     rest-=pos_delim+1;
     while(Is_Space(*now)&&rest>0){
@@ -282,7 +289,6 @@ int readline(int fd,Instr_list *instr_l){
   int pos_colon;
   /*step 2*/
   int interpret_status,ret_status=0;
-  int is_break;
   /*ここまで*/
   for(step=0;step<3;step++){
     /*初期化*/

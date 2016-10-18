@@ -46,6 +46,8 @@
 /* .break  この命令の位置にブレークポイントを設定  '!' でも可?*/
 #define _BREAK 0x03000000
 /*バイナリコード(4byte)から要素を抜き出すためのマクロ*/
+
+#define MASK_OP_FUN 0xFC00003F
 #define Fetch_opcode(code) (((code)&0xFC000000)>>26)
 #define Fetch_rs(code) (((code)&0x3E00000)>>21)
 #define Fetch_rt(code) (((code)&0x1F0000)>>16)
@@ -55,9 +57,8 @@
 #define Fetch_immediate(code) ((code)&0xFFFF)
 #define Fetch_instr_index(code) ((code)&0x3FFFFFF)
 
-
-
-#define INSTR_END -2147483648
+#define INSTR_START -1
+#define INSTR_END -1
 
 /*オペランド指定用のマクロ;今のところreadline.cのみで使用;構文チェック用*/
 #define UNKNOWN -1
@@ -100,9 +101,9 @@ int instr_sra(Simulator *sim,int rs,int rt,int rd,int sa);
 int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa);
 /*rd <- rs>>rt; pc++*/
 int instr_in(Simulator *sim,int rs,int rt,int rd,int sa);
-/*実際の動作について説明求む*/
+/*read 4 bytes from stdin into rd)*/
 int instr_out(Simulator *sim,int rs,int rt,int rd,int sa);
-/*実際の動作について説明求む*/
+/*write 4 bytes from stdout into rsx*/
 
 /*形式Iの命令*/
 int instr_move(Simulator *sim,int rs,int rt,int imm);

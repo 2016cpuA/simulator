@@ -69,7 +69,7 @@ int get_instr(char *name){
 }
 
 void print_instr(Instruct instr,FILE* out_file){
-  switch (instr.opcode){
+  switch (instr.opcode&MASK_OP_FUN){
   case ADD: Print("ADD");break;
   case ADDI: Print("ADDI");break;
   case SUB: Print("SUB");break;

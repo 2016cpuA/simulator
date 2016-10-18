@@ -9,7 +9,7 @@
 #define UNKNOWN_OP -1
 
 int judge_type(int opcode){
-  switch(opcode){
+  switch(opcode&MASK_OP_FUN){
   case J:
   case JAL: return TYPE_J;break;
   case MOVE:
@@ -36,11 +36,12 @@ int judge_type(int opcode){
   case IN:
   case OUT: return TYPE_R;break;
   }
+  fprintf(stderr,"Warning(simulator): unknown instruct\n");
   return UNKNOWN;
 }
     
 int fetch_r(int (**instr)(Simulator*,int,int,int,int),int op[4],Instruct ins){
-  switch(ins.opcode){
+  switch(ins.opcode&MASK_OP_FUN){
     /* <op> rd,rs,rt  ... rd <- rs <op> rt*/
   case ADD: if(instr!=NULL) *instr=instr_add;
     if(op!=NULL)
@@ -97,7 +98,7 @@ int fetch_r(int (**instr)(Simulator*,int,int,int,int),int op[4],Instruct ins){
 }
 
 int fetch_i(int (**instr)(Simulator*,int,int,int),int op[4],Instruct ins){
-  switch(ins.opcode){
+  switch(ins.opcode&MASK_OP_FUN){
   case MOVE: if(instr!=NULL) *instr=instr_addi;
     if(op!=NULL)
       op[0]=ins.operands[1];op[1]=ins.operands[0];op[2]=0;break;
@@ -127,7 +128,7 @@ int fetch_i(int (**instr)(Simulator*,int,int,int),int op[4],Instruct ins){
 }
 
 int fetch_j(int (**instr)(Simulator*,int),int op[4],Instruct ins){
-  switch(ins.opcode){
+  switch(ins.opcode&MASK_OP_FUN){
   case J: if(instr!=NULL) *instr=instr_j;
     if(op!=NULL)
       op[0]=ins.operands[0];break;

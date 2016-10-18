@@ -11,6 +11,8 @@
 extern Instruct *load_instruct(int fd,char* output_instr_file_name,int *size);
 
 #define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++) (sim).reg[_i]=0;(sim).pc=0;} while(0);
+#define Is_break(opcode) ((opcode)&_BREAK)
+
 
 /*オプションから受け取った変数*/
 int iter_max,debug,execute;
@@ -120,18 +122,26 @@ int simulation(Instruct *instr, int n){
   return 0;
 }    
 
+enum Flag {STEP,CONTINUE};
 int step_simulation(Instruct *instr, int n) {
   Simulator sim;
   Instruct now;
   int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
-  int instr_type,clocks=0;
+  int instr_type,clocks=0,stop=0;
   int ch;
+  enum Flag flag=CONTINUE;
   Sim_Init(sim);
   /*simulator実行部分*/
   fprintf(stderr,"Execution started.\n");
   while(sim.pc<n){
     /*FETCH*/
     now=instr[sim.pc];
+    stop=Is_break(now.opcode);
+    if(stop){
+      fprintf(stderr,"executed: ");
+      print_instr(instr[sim.pc],stderr);
+      fprintf(stderr,"\n");
+    }
     instr_type=judge_type(now.opcode);
     switch(instr_type){
       case TYPE_R: 
@@ -157,14 +167,23 @@ int step_simulation(Instruct *instr, int n) {
       break;
     }
     clocks++;
-
-    fprintf(stderr,"STEP No.%d.\n", sim.pc);
-    print_regs(sim);
-    fprintf(stderr,"clocks: %d\n\n",clocks);
-    while((ch = getchar()) != '\n');
-    if(ch == EOF) {
-      fprintf(stderr,"step simulation cancelled.\n");
-      break;
+    if(stop||flag==STEP){
+      fprintf(stderr,"STEP No.%d.\n", sim.pc);
+      print_regs(sim);
+      fprintf(stderr,"clocks: %d\n",clocks);
+      fprintf(stderr,"next instruct: ");
+      print_instr(instr[sim.pc],stderr);
+      fprintf(stderr,"\n");
+      while((ch = getchar())!=EOF){
+	if(ch=='\n') break;
+	if(ch=='s') flag=STEP;
+	else if(ch=='c') flag=CONTINUE;
+	else fprintf(stderr,"sim: Unknown command\n");
+      }
+      if(ch == EOF) {
+	fprintf(stderr,"step simulation cancelled.\n");
+	break;
+      }
     }
   }
 

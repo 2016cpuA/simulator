@@ -86,7 +86,7 @@ int main(int argc,char* argv[]){
 	  if((out_binary_fd=open(binary_file_name,O_WRONLY | O_CREAT,00666))<0){
 	    fprintf(stderr,"Error: file '%s' not found\n",argv[1]);
 	  }else{
-	    fprintf(stderr,"writing code into file '%s'\n","a.out");
+	    fprintf(stderr,"writing code into file '%s'\n",binary_file_name);
 	  }
 	  free(binary_file_name);
 	}
