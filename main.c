@@ -8,8 +8,9 @@
 #include "simulator.h"
 #include "instructs.h"
 
-extern int _sim(int program_fd,char* output_instr_file_name,int out_binary_fd,int execute,int iter_max);
+extern int _sim(int program_fd,char* output_instr_file_name,int out_binary_fd,int execute,int debug);
 extern int make_code(int out_fd,Instruct *instr,int n);
+extern int iter_max;
 
 int main(int argc,char* argv[]){
   int program_fd,out_binary_fd=-1;
@@ -17,7 +18,7 @@ int main(int argc,char* argv[]){
   int binary_output=0;
   int execute=1;
   int debug=0;
-  int iter_max=0x7fffffff;
+  iter_max=0x7fffffff;
   int ch;
   char _ch;
   extern char *optarg;
@@ -33,7 +34,6 @@ int main(int argc,char* argv[]){
       break;
     case 'd': /* debug mode */
       debug=1;
-      fprintf(stderr,"Warning: Unknown option 'd'\n");
       break;
     case 'n': /* no simulation */
       execute=0;
@@ -74,7 +74,7 @@ int main(int argc,char* argv[]){
 	  }
 	  free(binary_file_name);
 	}
-	_sim(program_fd,output_instr_file_name,out_binary_fd,execute,iter_max);
+	_sim(program_fd,output_instr_file_name,out_binary_fd,execute,debug);
       }
     }
     close(program_fd);
