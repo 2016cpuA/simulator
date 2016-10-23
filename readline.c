@@ -8,7 +8,6 @@
 #include "instructs.h"
 #include "list.h"
 
-
 #define EMPTY_LINE 1
 #define NO_ERROR 0
 #define SYNTAX_ERROR -65536-1

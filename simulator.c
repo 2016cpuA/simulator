@@ -49,21 +49,21 @@ int make_code(int out_fd,Instruct *instr,int n){
       switch(instr_type){
       case TYPE_R:
 	fetch_r(NULL,op,instr[i]);
-	code=make_code_r(instr[i].opcode,op[0],op[1],op[2],op[3]);
+	code=make_code_r(instr[i].opcode&MASK_OP_FUN,op[0],op[1],op[2],op[3]);
 	conv(code,buf);
 	for(j=0;j<4;j++)
 	  written+=write(out_fd,(void*)(buf+j),1);
 	break;
       case TYPE_I:
 	fetch_i(NULL,op,instr[i]);
-	code=make_code_i(instr[i].opcode,op[0],op[1],op[2]);
+	code=make_code_i(instr[i].opcode&MASK_OP_FUN,op[0],op[1],op[2]);
 	conv(code,buf);
 	for(j=0;j<4;j++)
 	  written+=write(out_fd,(void*)(buf+j),1);
 	break;
       case TYPE_J:
 	fetch_j(NULL,op,instr[i]);
-	code=make_code_j(instr[i].opcode,op[0]);
+	code=make_code_j(instr[i].opcode&MASK_OP_FUN,op[0]);
 	conv(code,buf);
 	for(j=0;j<4;j++)
 	  written+=write(out_fd,(void*)(buf+j),1);

@@ -14,6 +14,8 @@ extern int make_code(int out_fd,Instruct *instr,int n);
 extern int iter_max;
 extern int debug;
 extern int execute;
+/*sim_binary.c*/
+extern int _sim_binary(int program_fd,char *output_instr_file_name);
 /*instructs.c*/
 extern FILE *input_file;
 extern FILE *output_file;
@@ -80,7 +82,7 @@ int main(int argc,char* argv[]){
       fprintf(stderr,"Error: file '%s' not found\n",argv[optind]);
     }else{
       if(input_binary){
-	fprintf(stderr,"Error: Read-Binary mode NOT IMPLEMENTED\n");
+        _sim_binary(program_fd,output_instr_file_name);
       }else{
 	if(binary_output){
 	  if((out_binary_fd=open(binary_file_name,O_WRONLY | O_CREAT,00666))<0){

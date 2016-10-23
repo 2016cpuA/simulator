@@ -54,7 +54,7 @@
 #define Fetch_rd(code) (((code)&0xF800)>>11)
 #define Fetch_sa(code) (((code)&0x7C0)>>6)
 #define Fetch_function(code) ((code)&0x3F)
-#define Fetch_immediate(code) ((code)&0xFFFF)
+#define Fetch_immediate(code) (((code)&0x8000)?(((code)&0xFFFF)|0xFFFF0000):((code)&0x7fff))
 #define Fetch_instr_index(code) ((code)&0x3FFFFFF)
 
 #define INSTR_START -1
@@ -139,9 +139,9 @@ void print_instr(Instruct instr,FILE* out_file);
 /*以下はfetch.cに定義されている*/
 /*命令の形式を取得する関数*/
 int judge_type(int opcode);
-#define TYPE_R 1
-#define TYPE_I 2
-#define TYPE_J 3
+#define TYPE_R 0x10
+#define TYPE_I 0x20
+#define TYPE_J 0x30
 #define UNKNOWN_OP -1
 
 /*Instruct型のデータから、実行する関数とその引数を返す関数*/
