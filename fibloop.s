@@ -1,10 +1,15 @@
 #fibloop.s
+#fib(n) = 1 (if n=0,1)
+#fib(n) = fib(n-1)+fib(n-2) (otherwise)
+	CLEAR
 main:
-	ADDI	%r3,%r0,$30
-	ADDI	%r30,%r0,$0
+!
+	ADDI	%r3,%r0,30
+	ADDI	%r30,%r0,0
 	JAL	fibloop
 	J	SYS_EXIT
 fibloop:
+!
 	ADDI	%r4,%r0,$2
 	SLT	%r4,%r3,%r4
 	BEQ	%r4,%r0,.GT1
@@ -27,4 +32,4 @@ fibloop:
 	ADD	%r3,%r3,%r4
 	LW	%r31,4(%r30)
 	JR	%r31
-	
+return:	

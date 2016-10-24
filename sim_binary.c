@@ -7,108 +7,54 @@
 #include "simulator.h"
 #include "instructs.h"
 
-/*readline.cに定義*/
-extern Instruct *load_instruct(int fd,char* output_instr_file_name,int *size);
-
 #define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++) (sim).reg[_i]=0;(sim).pc=0;} while(0);
 #define Is_break(opcode) ((opcode)&_BREAK)
 #define Clear_break(opcode) ((opcode)&MASK_OP_FUN)
 #define Set_break(opcode) ((opcode)|_BREAK)
 /*オプションから受け取った変数*/
-int iter_max,debug,execute;
+/*simulation.c*/
+extern int iter_max,debug,execute;
+extern void print_regs(Simulator sim);
+/*readline.c*/
 
-void print_regs(Simulator sim){
-  int i;
-  fprintf(stderr,"GPRs:\n");
-  fprintf(stderr,"   %11d %11d %11d %11d %11d %11d %11d %11d\n--------------------------------------------------------------------------------------------------\n",0,1,2,3,4,5,6,7);
-  for (i=0;i<REGS;i++){
-    if(i%8==0)
-      fprintf(stderr,"%2d:",i);
-    fprintf(stderr,"%11d ",sim.reg[i]);
-    if(i%8==7){
-      fprintf(stderr,"\n");
-    }else{
-    }
-  }
-  fprintf(stderr,"\nFPRs:\n");
-  fprintf(stderr,"   %11d %11d %11d %11d %11d %11d %11d %11d\n--------------------------------------------------------------------------------------------------\n",0,1,2,3,4,5,6,7);
-  for (i=0;i<FREGS;i++){
-    if(i%8==0)
-      fprintf(stderr,"%2d:",i);
-    fprintf(stderr,"%11f ",sim.freg[i]);
-    if(i%8==7){
-      fprintf(stderr,"\n");
-    }else{
-    }
-  }
-
-  fprintf(stderr,"PC=%d\n",sim.pc);
-}
-
-void conv(int code,char buf[4]){
-  buf[0]=(char)Rev_bits(code&0xFF);
-  buf[1]=(char)Rev_bits((code&0xFF00)>>8);
-  buf[2]=(char)Rev_bits((code&0xFF0000)>>16);
-  buf[3]=(char)Rev_bits((code&0xFF000000)>>24);
-}
-
-int make_code(int out_fd,Instruct *instr,int n){
-  int i,j,op[4],instr_type,code,written=0;
-  char buf[4];
-
+void print_code(FILE *output_instr_file, int *bin, int n){
+  int i,op[4];
+  Instruct ins;
+  fprintf(output_instr_file,"pc\tcode    \tinstr\top1\top2\top3\top4\n");
   for(i=0;i<n;i++){
-    if((instr_type=judge_type(instr[i].opcode))>0){
-      switch(instr_type){
-      case TYPE_R:
-	fetch_r(NULL,op,instr[i]);
-	code=make_code_r(instr[i].opcode&MASK_OP_FUN,op[0],op[1],op[2],op[3]);
-	conv(code,buf);
-	for(j=0;j<4;j++)
-	  written+=write(out_fd,(void*)(buf+j),1);
-	break;
-      case TYPE_I:
-	fetch_i(NULL,op,instr[i]);
-	code=make_code_i(instr[i].opcode&MASK_OP_FUN,op[0],op[1],op[2]);
-	conv(code,buf);
-	for(j=0;j<4;j++)
-	  written+=write(out_fd,(void*)(buf+j),1);
-	break;
-      case TYPE_J:
-	fetch_j(NULL,op,instr[i]);
-	code=make_code_j(instr[i].opcode&MASK_OP_FUN,op[0]);
-	conv(code,buf);
-	for(j=0;j<4;j++)
-	  written+=write(out_fd,(void*)(buf+j),1);
-	break;
-      }
-    }
-  }
-  return written;
+    fprintf(output_instr_file,"%d\t%08X\t",i,bin[i]);
+    code_fetch(bin[i],&(ins.opcode),op);
+    print_instr(ins,output_instr_file);
+    fprintf(output_instr_file,"\t%d\t%d\t%d\t%d\n",op[0],op[1],op[2],op[3]);
+  } 
 }
-
-int simulation(Instruct *instr, int n){
+int simulation_bin(int *bin, int n){
   Simulator sim;
-  Instruct now;
+  int now;
+  Instruct ins;
   int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
-  int instr_type,clocks=0;
+  int instr_type,opcode,clocks=0;
   Sim_Init(sim);
   /*simulator実行部分*/
   fprintf(stderr,"Execution started.\n");
   while(sim.pc<n&&clocks<iter_max){
     /*FETCH*/
-    now=instr[sim.pc];
-    instr_type=judge_type(now.opcode);
+    now=bin[sim.pc];
+    code_fetch(now,&opcode,op);
+    instr_type=judge_type(opcode);
+    ins.opcode=opcode;
     switch(instr_type){
     case TYPE_R: 
-      fetch_r(&instr_r,op,now);
+      fetch_r(&instr_r,NULL,ins);
       break;
     case TYPE_I:
-      fetch_i(&instr_i,op,now);
+      fetch_i(&instr_i,NULL,ins);
       break;
     case TYPE_J:
-      fetch_j(&instr_j,op,now);
+      fetch_j(&instr_j,NULL,ins);
       break;
     }
+
     /*EXECUTE*/
     switch(instr_type){
     case TYPE_R: 
@@ -130,12 +76,13 @@ int simulation(Instruct *instr, int n){
   }
   print_regs(sim);
   fprintf(stderr,"clocks: %d\n",clocks);
-  free(instr);
+  free(bin);
   return 0;
 }    
 
+
 enum Flag {STEP,CONTINUE};
-int step_simulation(Instruct *instr, int n) {
+int step_simulation_bin(Instruct *instr, int n) {
   Simulator sim;
   Instruct now;
   int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
@@ -147,7 +94,6 @@ int step_simulation(Instruct *instr, int n) {
   fprintf(stderr,"Execution started.\n");
   while(sim.pc<n){
     /*FETCH*/
-    now=instr[sim.pc];
     stop=Is_break(now.opcode);
     if(stop||flag==STEP){
       fprintf(stderr,"STEP No.%d.\n", sim.pc);
@@ -169,50 +115,72 @@ int step_simulation(Instruct *instr, int n) {
     }
     instr_type=judge_type(now.opcode);
     switch(instr_type){
-      case TYPE_R: 
+    case TYPE_R: 
       fetch_r(&instr_r,op,now);
       break;
-      case TYPE_I:
+    case TYPE_I:
       fetch_i(&instr_i,op,now);
       break;
-      case TYPE_J:
+    case TYPE_J:
       fetch_j(&instr_j,op,now);
       break;
     }
     /*EXECUTE*/
     switch(instr_type){
-      case TYPE_R: 
+    case TYPE_R: 
       (*instr_r)(&sim,op[0],op[1],op[2],op[3]);
       break;
-      case TYPE_I:
+    case TYPE_I:
       (*instr_i)(&sim,op[0],op[1],op[2]);
       break;
-      case TYPE_J:
+    case TYPE_J:
       (*instr_j)(&sim,op[0]);
       break;
     }
     clocks++;
   }
-
+  
   fprintf(stderr,"Execution finished.\n");
   print_regs(sim);
   fprintf(stderr,"clocks: %d\n",clocks);
   free(instr);
   return 0;
 }
-
-int _sim(int program_fd,char *output_instr_file_name,int out_binary_fd){
-  int n,written_bytes;
-  Instruct *instr;
+int _sim_binary(int program_fd,char *output_instr_file_name){
+  int n;
+  int *bin;
+  register int i,tmp;
+  FILE *output_instr_file;
   /*命令のロード*/
-  instr=load_instruct(program_fd,output_instr_file_name,&n);
-  if(out_binary_fd>0){
-    written_bytes=make_code(out_binary_fd,instr,n);
-    fprintf(stderr,"%d byte written\n",written_bytes);
+  n=lseek(program_fd,0,SEEK_END)>>2;
+  lseek(program_fd,0,SEEK_SET);
+    /*命令列出力用のファイルのオープン*/
+  output_instr_file=NULL;
+  if(output_instr_file_name!=NULL){
+    output_instr_file=fopen(output_instr_file_name,"w");
+    if(output_instr_file_name==NULL){
+      fprintf(stderr,"Warning: Could not open file '%s'\n",output_instr_file_name);
+    }
   }
-  if(execute&&n>=0){
-    if(debug) step_simulation(instr,n);
-    else simulation(instr,n);
+  if(n>0){
+    bin=(int*)malloc(n*sizeof(int));
+    read(program_fd,bin,n<<2);
+    for(i=0;i<n;i++){
+      tmp=bin[i];
+      bin[i]=(Rev_bits((tmp&0xFF000000)>>24)<<24)|(Rev_bits((tmp&0xFF0000)>>16)<<16)|(Rev_bits((tmp&0xFF00)>>8)<<8)|Rev_bits(tmp&0xFF);
+    }
+    if(output_instr_file!=NULL){
+      print_code(output_instr_file,bin,n);
+      fclose(output_instr_file);
+    }
+    if(execute&&n>=0){
+      /*if(debug) step_simulation_bin(instr,n);
+	else*/
+      simulation_bin(bin,n);
+    }    
+    return 0;
+  }else{
+    fprintf(stderr,"Error: failed to load; could not open binary file\n");
+    return -1;
   }
-  return 0;
 }

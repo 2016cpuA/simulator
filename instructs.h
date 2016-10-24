@@ -29,23 +29,47 @@
 #define SRL 2
 #define IN 0xEC000000
 #define OUT 0xF0000000
+#define NOP 0xFC00003F
+#define MOVE 0xFE000000
+#define SWC1 0xE4000000
+#define LWC1 0xC4000000
+#define ADD_S 0x44000000
+#define SUB_S 0x44000001
+#define MUL_S 0x44000002
+#define DIV_S 0x44000003
+#define C_EQ_S 0x4400003C
+#define C_LE_S 0x4400003D
+#define C_LT_S 0x4400003E 
+#define FMT_S 0
 
-/*疑似命令,デバッグ用*/
-#define MASK_PSEUDO 0x02000000
-
+/*アセンブラ指令,デバッグ用命令 バイナリファイルには含めない命令*/
+#define MASK_ASSEM_INSTR 0x02000000
+/* .text textセクションの開始*/
+#define _TEXT 0x02000100
+/* .data dataセクションの開始*/
+#define _DATA 0x02000200
+/* .align n  メモリ上のデータの配置を2^nバイト毎に行う*/
+#define _ALIGN 0x02000300
+/* .word n 整数nを表す1wordのデータをメモリ上に配置 */ 
+#define _WORD 0x02000400
+/* .globl label  labelをリンカに登録する 開始時のエントリポイントの指定*/
+#define _GLOBL 0x02000500
+/* .break  この命令の位置にブレークポイントを設定  '!' でも可?*/
+#define _BREAK 0x03000000
 /*バイナリコード(4byte)から要素を抜き出すためのマクロ*/
+
+#define MASK_OP_FUN 0xFC00003F
 #define Fetch_opcode(code) (((code)&0xFC000000)>>26)
 #define Fetch_rs(code) (((code)&0x3E00000)>>21)
 #define Fetch_rt(code) (((code)&0x1F0000)>>16)
 #define Fetch_rd(code) (((code)&0xF800)>>11)
 #define Fetch_sa(code) (((code)&0x7C0)>>6)
 #define Fetch_function(code) ((code)&0x3F)
-#define Fetch_immediate(code) ((code)&0xFFFF)
+#define Fetch_immediate(code) (((code)&0x8000)?(((code)&0xFFFF)|0xFFFF0000):((code)&0x7fff))
 #define Fetch_instr_index(code) ((code)&0x3FFFFFF)
 
-
-
-#define INSTR_END -2147483648
+#define INSTR_START -1
+#define INSTR_END -1
 
 /*オペランド指定用のマクロ;今のところreadline.cのみで使用;構文チェック用*/
 #define UNKNOWN -1
@@ -59,6 +83,10 @@
   実体はinstructs.cに記述*/
 
 /*形式Rの命令*/
+int instr_clear(Simulator *sim,int rs,int rt,int rd,int sa);
+/*レジスタの初期化; pc++*/
+int instr_nop(Simulator *sim,int rs,int rt,int rd,int sa);
+/*pc++*/
 int instr_add(Simulator *sim,int rs,int rt,int rd,int sa);
 /*rd <- rs+rt; pc++*/
 int instr_sub(Simulator *sim,int rs,int rt,int rd,int sa);
@@ -84,11 +112,13 @@ int instr_sra(Simulator *sim,int rs,int rt,int rd,int sa);
 int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa);
 /*rd <- rs>>rt; pc++*/
 int instr_in(Simulator *sim,int rs,int rt,int rd,int sa);
-/*実際の動作について説明求む*/
+/*read 4 bytes from stdin into rd)*/
 int instr_out(Simulator *sim,int rs,int rt,int rd,int sa);
-/*実際の動作について説明求む*/
+/*write 4 bytes from stdout into rsx*/
 
 /*形式Iの命令*/
+int instr_move(Simulator *sim,int rs,int rt,int imm);
+/*rt < -rs;pc++*/
 int instr_addi(Simulator *sim,int rs,int rt,int imm);
 /*rt <- rs+imm; pc++*/
 int instr_andi(Simulator *sim,int rs,int rt,int imm);
@@ -105,11 +135,31 @@ int instr_sw(Simulator *sim,int rbase,int rt,int offset);
 /*mem[rbase+offset] <- rt; pc++*/
 
 /*形式Jの命令*/
-int instr_jal(Simulator *sim,int instr_index);
-/*r31<-pc+8; pc<-pc[31:28]|(instr_index<<2)*/
 int instr_j(Simulator *sim,int instr_index);
-/*pc<-pc[31:28]|(instr_index<<2)*/
+/*pc<-instr_index*/
+int instr_jal(Simulator *sim,int instr_index);
+/*r31<-pc; pc<-instr_index*/
 
+/*浮動小数点命令・I形式*/
+int instr_flwc1(Simulator *sim,int base,int ft,int offset);
+/*ft <- mem[base+offset]; pc++*/
+int instr_fswc1(Simulator *sim,int base,int ft,int offset);
+/*mem[base+offset] <- ft; pc++*/
+/*浮動小数点命令・R形式*/
+int instr_fadds(Simulator *sim,int fmt,int ft,int fs,int fd);
+/*fd <- fs+ft; pc++*/
+int instr_fsubs(Simulator *sim,int fmt,int ft,int fs,int fd);
+/*fd <- fs-ft; pc++*/
+int instr_fmuls(Simulator *sim,int fmt,int ft,int fs,int fd);
+/*fd <- fs*ft; pc++*/
+int instr_fdivs(Simulator *sim,int fmt,int ft,int fs,int fd);
+/*fd <- fs/ft; pc++*/
+int instr_fceqs(Simulator *sim,int fmt,int ft,int fs,int rd);
+/*rd <- (fs==ft); pc++*/
+int instr_fcles(Simulator *sim,int fmt,int ft,int fs,int rd);
+/*rd <- (fs<=ft); pc++*/
+int instr_fclts(Simulator *sim,int fmt,int ft,int fs,int rd);
+/*rd <- (fs<ft); pc++*/
 
 /*アセンブラの命令名を読み取るための関数
   実体はinstructs.cに記述*/
@@ -120,9 +170,9 @@ void print_instr(Instruct instr,FILE* out_file);
 /*以下はfetch.cに定義されている*/
 /*命令の形式を取得する関数*/
 int judge_type(int opcode);
-#define TYPE_R 1
-#define TYPE_I 2
-#define TYPE_J 3
+#define TYPE_R 0x10
+#define TYPE_I 0x20
+#define TYPE_J 0x30
 #define UNKNOWN_OP -1
 
 /*Instruct型のデータから、実行する関数とその引数を返す関数*/
