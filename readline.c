@@ -13,7 +13,7 @@
 #define SYNTAX_ERROR -65536-1
 #define UNKNOWN_SYMBOL -65536-2
 #define UNKNOWN_INSTRUCT -65536-3
-#define ENTRY_POINT "main"
+#define ENTRY_POINT "_min_caml_start"
 
 /*空白文字の定義*/
 #define Is_Space(ch) (ch==' '||ch=='\t'||ch=='\r')
@@ -451,7 +451,7 @@ int readline(int fd,Instr_list *instr_l){
 	}
       }
       if((pos=get_pc(linker,ENTRY_POINT))<0){
-	fprintf(stderr,"Warning: missing entry point; add '.globl %s' on your program, and be sure label '%s' exists.\n",ENTRY_POINT,ENTRY_POINT);
+	fprintf(stderr,"Warning: missing entry point; add '.globl %s' on your program, and make sure label '%s' exists.\n",ENTRY_POINT,ENTRY_POINT);
       }else{
 	j_ep=(Instruct*)malloc(sizeof(Instruct));
 	j_ep->opcode=J;
