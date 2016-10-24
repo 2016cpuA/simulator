@@ -13,7 +13,7 @@
 #define SYNTAX_ERROR -65536-1
 #define UNKNOWN_SYMBOL -65536-2
 #define UNKNOWN_INSTRUCT -65536-3
-
+#define ENTRY_POINT "main"
 
 /*空白文字の定義*/
 #define Is_Space(ch) (ch==' '||ch=='\t'||ch=='\r')
@@ -23,6 +23,13 @@ typedef struct label{
   char name[100];
   int pc;
 } Label;
+
+typedef struct program{
+  char filename[100];
+  int offset;
+  Label *labels;
+  int n_label;
+} Program;
 /*ラベルの数*/
 int n_label;
 /*ラベルの配列*/
@@ -31,7 +38,11 @@ Label *labels;
 int d_lines;
 /*命令列出力用のファイルストリーム*/
 FILE *output_instr_file;
-
+/*pcの値の初期値*/
+int offset=0;
+/*リンカ*/
+Label *linker;
+int n_linker;
 /*Utilities*/
 int get_pc(Label *labels,char *name_label){
   int i;
@@ -41,6 +52,17 @@ int get_pc(Label *labels,char *name_label){
     }
   }
   return -1;
+}
+
+int add_align(Label *ldest,Label *lsrc,int ndest,int nsrc){
+  Label *tmp = ldest;
+  int i,max=ndest+nsrc;;
+  ldest=(Label*)malloc(max*sizeof(Label));
+  for(i=0;i<ndest;i++)
+    ldest[i]=tmp[i];
+  for(;i<max;i++)
+    ldest[i]=lsrc[i-ndest];
+  return i;
 }
 
 int list_to_align(Instruct *instr_a,Instr_list *instr_l,int n){
@@ -148,7 +170,7 @@ int get_operand(char *op,int type_op,int pc,int opcode){
     if((dest_pc=get_pc(labels,buf))>=0){
       op_fun=opcode&MASK_OP_FUN;
       if((op_fun==J)||(op_fun==JAL))
-	return dest_pc;
+	return dest_pc+offset;
       else
 	return dest_pc-pc;
     }else{
@@ -297,15 +319,22 @@ int readline(int fd,Instr_list *instr_l){
   /*実行に必要な変数の定義*/
   /*step 0*/
   int colons=0;
+  int links=0;
+  int pos;
+  Instruct *j_ep;
   /*step 1*/
-  char *now;
+  char *now,opcode[16];
   int pos_colon;
+  
   /*step 2*/
   int interpret_status,ret_status=0;
   /*ここまで*/
   for(step=0;step<3;step++){
     /*初期化*/
     text[0]=0;c=0;i=0;l=0;
+    if(step==1){
+      links=0;
+    }
     /*ここまで*/
     while((c=read(fd,buf,1023))>0){
       buf[c]=0;
@@ -315,9 +344,20 @@ int readline(int fd,Instr_list *instr_l){
 	text[pos_lf]=0;
 	/*各行に対する処理*/
 	if(step==0){
-	  /*step 0: ラベルの数のカウント*/
+	  /*step 0: ラベルの数のカウントと.globlのカウント*/
 	  if(search(':',text,pos_lf)>=0)
 	    colons++;
+	  if((pos=search('.',text,pos_lf))>=0){
+	    pos_colon=search_space(text+pos,pos_lf-pos);
+	    if(pos_colon<0){
+	      strcpy(opcode,text+pos);
+	    }else{
+	      strncpy(opcode,text+pos,pos_colon);
+	    }
+	    if(!strcmp(opcode,".globl")){
+	      links++;
+	    }
+	  }
 	}else if(step==1){
 	  /*step 1: ラベルの配列の作成*/
 	  strcpy(tmp,text);
@@ -340,10 +380,36 @@ int readline(int fd,Instr_list *instr_l){
 	  while(Is_Space(*now)||*now=='!'){
 	    now++;
 	  }
-	  /*行の最後まで空白or疑似命令('.'で始まる命令)があるor単行コメントがあったら行数をカウントしない*/
-	  if (*now!=0&&*now!='#'&&*now!='.'){
+	  /*ディレクティブ (.globl)*/
+	  if(*now=='.'){
+	    pos_colon=search_space(now,strlen(now));
+	    if(pos_colon<0){
+	      pos_colon=strlen(now);
+	      strcpy(opcode,now);
+	    }else{
+	      strncpy(opcode,now,pos_colon);
+	      now+=pos_colon+1;
+	    }
+	    if(!strcmp(opcode,".globl")){
+	      while(Is_Space(*now)){
+		now++;
+	      } 
+	      if(*now){
+		pos_colon=search_space(now,strlen(now));
+		if(pos_colon<0){
+		  pos_colon=strlen(now);
+		  strcpy(linker[links].name,now);
+		}else{
+		  strncpy(linker[links].name,now,pos_colon);
+		}
+		links++;
+	      }
+	    }
+	  }else if(*now!=0&&*now!='#'&&*now!='.'){
+	    /*行の最後まで空白or単行コメントがあったら行数をカウントしない*/
 	    l++;
 	  }
+	  
 	}else{
 	  /*step 2: 各行の解釈*/
 	  if((interpret_status=interpret(instr_l,text,pos_lf+1,l))<0)
@@ -365,7 +431,9 @@ int readline(int fd,Instr_list *instr_l){
       /*step 0*/
       lseek(fd,0,SEEK_SET);
       labels=(Label*)malloc((colons+1)*sizeof(Label));
+      linker=(Label*)malloc(links*sizeof(Label));
       n_label=colons+1;
+      n_linker=links;
       colons=0;
     }else if(step==1){
       /*step 1*/
@@ -375,7 +443,24 @@ int readline(int fd,Instr_list *instr_l){
       if(output_instr_file!=NULL){
 	print_labels(labels,n_label,output_instr_file);
       }
+      for(links=0;links<n_linker;links++){
+	pos=get_pc(labels,linker[links].name);
+	linker[links].pc=pos;
+	if(pos==-1){
+	  fprintf(stderr,"Warning: unknown global label '%s'\n",linker[links].name);
+	}
+      }
+      if((pos=get_pc(linker,ENTRY_POINT))<0){
+	fprintf(stderr,"Warning: missing entry point; add '.globl %s' on your program, and be sure label '%s' exists.\n",ENTRY_POINT,ENTRY_POINT);
+      }else{
+	j_ep=(Instruct*)malloc(sizeof(Instruct));
+	j_ep->opcode=J;
+	offset+=1;
+	j_ep->operands[0]=pos+offset;
+	list_push(instr_l,j_ep);
+      }
       d_lines=1;
+      
     }else{
       /*step 2*/
       free(labels);

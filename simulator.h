@@ -3,10 +3,11 @@
 #define SIM_H
 #define MEMSIZE 65536
 #define REGS 32
-
+#define FREGS 32
 struct simulator{
   char mem[MEMSIZE];
   int reg[REGS];
+  float freg[FREGS];
   int pc;
 };
 

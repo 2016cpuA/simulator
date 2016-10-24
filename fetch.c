@@ -14,7 +14,9 @@ int judge_type(int opcode){
   case LW:
   case SW:
   case ANDI:
-  case ORI: return TYPE_I;break;
+  case ORI: 
+  case LWC1: 
+  case SWC1: return TYPE_I;break;
   case NOP:
   case ADD:
   case SUB:
@@ -28,6 +30,13 @@ int judge_type(int opcode){
   case SLL:
   case SRA:
   case SRL:
+  case ADD_S:
+  case SUB_S:
+  case MUL_S:
+  case DIV_S:
+  case C_EQ_S:
+  case C_LE_S:
+  case C_LT_S:
   case IN:
   case OUT: return TYPE_R;break;
   }
@@ -103,6 +112,34 @@ int fetch_r(int (**instr)(Simulator*,int,int,int,int),int op[4],Instruct ins){
     if(op!=NULL){
       op[0]=0;op[1]=0;op[2]=0;op[3]=0;}
     break;
+  case ADD_S: if(instr!=NULL) *instr=instr_fadds;
+    if(op!=NULL){
+      op[0]=FMT_S;op[1]=ins.operands[2];op[2]=ins.operands[1];op[3]=ins.operands[0];}
+    break;
+  case SUB_S: if(instr!=NULL) *instr=instr_fsubs;
+    if(op!=NULL){
+      op[0]=FMT_S;op[1]=ins.operands[2];op[2]=ins.operands[1];op[3]=ins.operands[0];}
+    break;
+  case MUL_S: if(instr!=NULL) *instr=instr_fmuls;
+    if(op!=NULL){
+      op[0]=FMT_S;op[1]=ins.operands[2];op[2]=ins.operands[1];op[3]=ins.operands[0];}
+    break;
+  case DIV_S: if(instr!=NULL) *instr=instr_fdivs;
+    if(op!=NULL){
+      op[0]=FMT_S;op[1]=ins.operands[2];op[2]=ins.operands[1];op[3]=ins.operands[0];}
+    break;
+  case C_EQ_S: if(instr!=NULL) *instr=instr_fceqs;
+    if(op!=NULL){
+      op[0]=FMT_S;op[1]=ins.operands[2];op[2]=ins.operands[1];op[3]=ins.operands[0];}
+    break;
+  case C_LE_S: if(instr!=NULL) *instr=instr_fcles;
+    if(op!=NULL){
+      op[0]=FMT_S;op[1]=ins.operands[2];op[2]=ins.operands[1];op[3]=ins.operands[0];}
+    break;
+  case C_LT_S: if(instr!=NULL) *instr=instr_fclts;
+    if(op!=NULL){
+      op[0]=FMT_S;op[1]=ins.operands[2];op[2]=ins.operands[1];op[3]=ins.operands[0];}
+    break;
   default:
     fprintf(stderr,"Warning: Unknown opecode(%x)\n",ins.opcode&MASK_OP_FUN);
   }
@@ -143,6 +180,15 @@ int fetch_i(int (**instr)(Simulator*,int,int,int),int op[4],Instruct ins){
     if(op!=NULL){
       op[0]=ins.operands[2];op[1]=ins.operands[0];op[2]=ins.operands[1];}
     break;
+  case SWC1: if(instr!=NULL) *instr=instr_fswc1;
+    if(op!=NULL){
+      op[0]=ins.operands[2];op[1]=ins.operands[0];op[2]=ins.operands[1];}
+    break;
+  case LWC1: if(instr!=NULL) *instr=instr_flwc1;
+    if(op!=NULL){
+      op[0]=ins.operands[2];op[1]=ins.operands[0];op[2]=ins.operands[1];}
+    break;
+
   default:
     fprintf(stderr,"Warning: Unknown opecode(%x)\n",ins.opcode&MASK_OP_FUN);
   }

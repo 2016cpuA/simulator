@@ -30,6 +30,18 @@ void print_regs(Simulator sim){
     }else{
     }
   }
+  fprintf(stderr,"\nFPRs:\n");
+  fprintf(stderr,"   %11d %11d %11d %11d %11d %11d %11d %11d\n--------------------------------------------------------------------------------------------------\n",0,1,2,3,4,5,6,7);
+  for (i=0;i<FREGS;i++){
+    if(i%8==0)
+      fprintf(stderr,"%2d:",i);
+    fprintf(stderr,"%11f ",sim.freg[i]);
+    if(i%8==7){
+      fprintf(stderr,"\n");
+    }else{
+    }
+  }
+
   fprintf(stderr,"PC=%d\n",sim.pc);
 }
 

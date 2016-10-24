@@ -31,6 +31,17 @@
 #define OUT 0xF0000000
 #define NOP 0xFC00003F
 #define MOVE 0xFE000000
+#define SWC1 0xE4000000
+#define LWC1 0xC4000000
+#define ADD_S 0x44000000
+#define SUB_S 0x44000001
+#define MUL_S 0x44000002
+#define DIV_S 0x44000003
+#define C_EQ_S 0x4400003C
+#define C_LE_S 0x4400003D
+#define C_LT_S 0x4400003E 
+#define FMT_S 0
+
 /*アセンブラ指令,デバッグ用命令 バイナリファイルには含めない命令*/
 #define MASK_ASSEM_INSTR 0x02000000
 /* .text textセクションの開始*/
@@ -124,11 +135,31 @@ int instr_sw(Simulator *sim,int rbase,int rt,int offset);
 /*mem[rbase+offset] <- rt; pc++*/
 
 /*形式Jの命令*/
-int instr_jal(Simulator *sim,int instr_index);
-/*r31<-pc+8; pc<-pc[31:28]|(instr_index<<2)*/
 int instr_j(Simulator *sim,int instr_index);
-/*pc<-pc[31:28]|(instr_index<<2)*/
+/*pc<-instr_index*/
+int instr_jal(Simulator *sim,int instr_index);
+/*r31<-pc; pc<-instr_index*/
 
+/*浮動小数点命令・I形式*/
+int instr_flwc1(Simulator *sim,int base,int ft,int offset);
+/*ft <- mem[base+offset]; pc++*/
+int instr_fswc1(Simulator *sim,int base,int ft,int offset);
+/*mem[base+offset] <- ft; pc++*/
+/*浮動小数点命令・R形式*/
+int instr_fadds(Simulator *sim,int fmt,int ft,int fs,int fd);
+/*fd <- fs+ft; pc++*/
+int instr_fsubs(Simulator *sim,int fmt,int ft,int fs,int fd);
+/*fd <- fs-ft; pc++*/
+int instr_fmuls(Simulator *sim,int fmt,int ft,int fs,int fd);
+/*fd <- fs*ft; pc++*/
+int instr_fdivs(Simulator *sim,int fmt,int ft,int fs,int fd);
+/*fd <- fs/ft; pc++*/
+int instr_fceqs(Simulator *sim,int fmt,int ft,int fs,int rd);
+/*rd <- (fs==ft); pc++*/
+int instr_fcles(Simulator *sim,int fmt,int ft,int fs,int rd);
+/*rd <- (fs<=ft); pc++*/
+int instr_fclts(Simulator *sim,int fmt,int ft,int fs,int rd);
+/*rd <- (fs<ft); pc++*/
 
 /*アセンブラの命令名を読み取るための関数
   実体はinstructs.cに記述*/

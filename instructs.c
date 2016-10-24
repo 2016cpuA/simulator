@@ -61,6 +61,24 @@ int get_instr(char *name){
     return NOP;
   }else if(!strcmp(name,"MOVE")){
     return MOVE;
+  }else if(!strcmp(name,"SWC1")){
+    return SWC1;
+  }else if(!strcmp(name,"LWC1")){
+    return LWC1;
+  }else if(!strcmp(name,"ADD.s")){
+    return ADD_S;
+  }else if(!strcmp(name,"SUB.s")){
+    return SUB_S;  
+  }else if(!strcmp(name,"MUL.s")){
+    return MUL_S;
+  }else if(!strcmp(name,"DIV.s")){
+    return DIV_S;
+  }else if(!strcmp(name,"C.eq.s")){
+    return C_EQ_S;
+  }else if(!strcmp(name,"C.le.s")){
+    return C_LE_S;
+  }else if(!strcmp(name,"C.lt.s")){
+    return C_LT_S;
   }else{
     printf("Error: unknown instruction '%s'\n",name);
     return UNKNOWN;
@@ -95,7 +113,15 @@ void print_instr(Instruct instr,FILE* out_file){
   case OUT: Print("OUT");break;
   case NOP: Print("NOP");break;  
   case MOVE: Print("MOVE");break;  
-
+  case LWC1: Print("LWC1");break;  
+  case SWC1: Print("SWC1");break;  
+  case ADD_S: Print("ADD.s");break;  
+  case SUB_S: Print("SUB.s");break;  
+  case MUL_S: Print("MUL.s");break;  
+  case DIV_S: Print("DIV.s");break;  
+  case C_EQ_S: Print("C.eq.s");break;  
+  case C_LE_S: Print("C.le.s");break;  
+  case C_LT_S: Print("C.lt.s");break;  
   default: Print("#UNKNOWN#");
   }
 }
@@ -120,6 +146,9 @@ int instr_clear(Simulator *sim,int rs,int rt,int rd,int sa){
   int i;
   for(i=0;i<REGS;i++){
     (sim->reg[i])=0;
+  }
+  for(i=0;i<FREGS;i++){
+    (sim->freg[i])=0;
   }
   Inc(sim->pc);
   return 0;
@@ -290,12 +319,72 @@ int instr_j(Simulator *sim,int instr_index) {
   return 0;
 }
 
-/*浮動小数点数用命令(仕様未定義)*/
+union i_f {
+  int i;
+  float f;
+};
+/*浮動小数点・R形式*/
+int instr_fadds(Simulator *sim,int fmt,int ft,int fs,int fd){
+  sim->freg[fd]=(sim->freg[fs])+(sim->freg[ft]);
+  Inc(sim->pc);
+  return 0;
+}
+int instr_fsubs(Simulator *sim,int fmt,int ft,int fs,int fd){
+  sim->freg[fd]=(sim->freg[fs])-(sim->freg[ft]);
+  Inc(sim->pc);
+  return 0;
+}
+int instr_fmuls(Simulator *sim,int fmt,int ft,int fs,int fd){
+  sim->freg[fd]=(sim->freg[fs])*(sim->freg[ft]);
+  Inc(sim->pc);
+  return 0;
+}
+int instr_fdivs(Simulator *sim,int fmt,int ft,int fs,int fd){
+  float diver=sim->freg[ft],dived=sim->freg[fs];
+  sim->freg[fd]=dived/diver;
+  Inc(sim->pc);
+  return 0;
+}
+int instr_fceqs(Simulator *sim,int fmt,int ft,int fs,int rd){
+  sim->reg[rd]=(sim->freg[fs]==sim->freg[ft]);
+  Inc(sim->pc);
+  return 0;
+}
+int instr_fcles(Simulator *sim,int fmt,int ft,int fs,int rd){
+  sim->reg[rd]=(sim->freg[fs]<=sim->freg[ft]);
+  Inc(sim->pc);
+  return 0;
+}
+int instr_fclts(Simulator *sim,int fmt,int ft,int fs,int rd){
+  sim->reg[rd]=(sim->freg[fs]<sim->freg[ft]);
+  Inc(sim->pc);
+  return 0;
+}
+/*浮動小数点・I形式*/
+int instr_flwc1(Simulator *sim,int rbase,int ft,int offset){
+  int addr=sim->reg[rbase] + offset;
+  char *memory = sim->mem;
+  union i_f dest;
+  dest.i = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
+  sim->freg[ft] = dest.f;
+  Inc(sim->pc);
+  return 0;
+}  
+int instr_fswc1(Simulator *sim,int rbase,int ft,int offset){
+  int addr=sim->reg[rbase] + offset;
+  char *memory = sim->mem;
+  union i_f src;
+  src.f=sim->freg[ft];
+  memory[addr]=(char)(src.i&0xff);
+  memory[addr+1]=(char)((src.i&0xff00)>>8);
+  memory[addr+2]=(char)((src.i&0xff0000)>>16);
+  memory[addr+3]=(char)((src.i&0xff000000)>>24);
+  Inc(sim->pc);
+  return 0;
+}
 
-int instr_fadd(Simulator *sim,int rs,int rt,int rd,int sa);
-int instr_fsub(Simulator *sim,int rs,int rt,int rd,int sa);
-int instr_fmul(Simulator *sim,int rs,int rt,int rd,int sa);
-int instr_fdiv(Simulator *sim,int rs,int rt,int rd,int sa);
+
+/*浮動小数点数用命令(仕様未定義)*/
 int instr_finv(Simulator *sim,int rs,int rt,int rd,int sa);
 int instr_sqrt(Simulator *sim,int rs,int rt,int rd,int sa);
 int instr_sin(Simulator *sim,int rs,int rt,int rd,int sa);
