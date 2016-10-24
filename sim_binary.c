@@ -20,9 +20,9 @@ extern void print_regs(Simulator sim);
 void print_code(FILE *output_instr_file, int *bin, int n){
   int i,op[4];
   Instruct ins;
-  fprintf(output_instr_file,"pc\tinstr\top1\top2\top3\top4\n");
+  fprintf(output_instr_file,"pc\tcode    \tinstr\top1\top2\top3\top4\n");
   for(i=0;i<n;i++){
-    fprintf(output_instr_file,"%d\t",i);
+    fprintf(output_instr_file,"%d\t%08X\t",i,bin[i]);
     code_fetch(bin[i],&(ins.opcode),op);
     print_instr(ins,output_instr_file);
     fprintf(output_instr_file,"\t%d\t%d\t%d\t%d\n",op[0],op[1],op[2],op[3]);
@@ -149,6 +149,7 @@ int step_simulation_bin(Instruct *instr, int n) {
 int _sim_binary(int program_fd,char *output_instr_file_name){
   int n;
   int *bin;
+  register int i,tmp;
   FILE *output_instr_file;
   /*命令のロード*/
   n=lseek(program_fd,0,SEEK_END)>>2;
@@ -164,6 +165,10 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
   if(n>0){
     bin=(int*)malloc(n*sizeof(int));
     read(program_fd,bin,n<<2);
+    for(i=0;i<n;i++){
+      tmp=bin[i];
+      bin[i]=(Rev_bits((tmp&0xFF000000)>>24)<<24)|(Rev_bits((tmp&0xFF0000)>>16)<<16)|(Rev_bits((tmp&0xFF00)>>8)<<8)|Rev_bits(tmp&0xFF);
+    }
     if(output_instr_file!=NULL){
       print_code(output_instr_file,bin,n);
       fclose(output_instr_file);

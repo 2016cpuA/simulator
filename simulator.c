@@ -34,10 +34,10 @@ void print_regs(Simulator sim){
 }
 
 void conv(int code,char buf[4]){
-  buf[0]=(char)(code&0xFF);
-  buf[1]=(char)((code&0xFF00)>>8);
-  buf[2]=(char)((code&0xFF0000)>>16);
-  buf[3]=(char)((code%0xFF000000)>>24);
+  buf[0]=(char)Rev_bits(code&0xFF);
+  buf[1]=(char)Rev_bits((code&0xFF00)>>8);
+  buf[2]=(char)Rev_bits((code&0xFF0000)>>16);
+  buf[3]=(char)Rev_bits((code&0xFF000000)>>24);
 }
 
 int make_code(int out_fd,Instruct *instr,int n){

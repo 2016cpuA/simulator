@@ -133,7 +133,7 @@ int get_operand(char *op,int type_op,int pc,int opcode){
         printf("Warning(line %d): wrong operand type\n",d_lines); 
       return atoi(op+2);
     }else{
-      printf("Error(line %d): unkown operand '%s'\n",d_lines,op);
+      printf("Error(line %d): unknown operand '%s'\n",d_lines,op);
     }
   }else if(op[0]=='$'){
     if (!(type_op&&IMMIDIATE))
@@ -152,7 +152,7 @@ int get_operand(char *op,int type_op,int pc,int opcode){
       else
 	return dest_pc-pc;
     }else{
-      printf("Error(line %d): unkown operand '%s'\n",d_lines,buf);
+      printf("Error(line %d): unknown operand '%s'\n",d_lines,buf);
     }
   }
   return SYNTAX_ERROR;
@@ -207,47 +207,41 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
       strncpy(opcode,now,pos_delim);
       opcode[pos_delim]=0;
     }
-    if((instr_read->opcode=get_instr(opcode))==-1) err=UNKNOWN_INSTRUCT;
-    if(is_break){
-      (instr_read->opcode)|= _BREAK ;
-      is_break=0;
-    }
-    now+=pos_delim+1;
-    rest-=pos_delim+1;
-    while(Is_Space(*now)&&rest>0){
-      rest--;
-      now++;
-    }
-    /* <op> |a1,a2,a3
-       <op> |a1,a2(a3) */
-    i=0;
-    while(i<4&&rest>0){
-      pos_delim=search_delim(now,rest);
-      if (pos_delim<0){
-	if(rest==0) break;
-	pos_delim=rest;
-      }
-      strncpy(operands[i],now,pos_delim);
-      operands[i][pos_delim]=0;
-      instr_read->operands[i]=get_operand(operands[i],7,pc,instr_read->opcode);
-      if(instr_read->operands[i]==SYNTAX_ERROR){
-	err=SYNTAX_ERROR;
-      }
-      i++;
+    if(opcode[0]=='.'){
       now+=pos_delim+1;
       rest-=pos_delim+1;
-      if(now[pos_delim]=='('){
-	while(Is_Space(*now)&&rest>0){
-	  rest--;
-	  now++;
+      while(Is_Space(*now)&&rest>0){
+	rest--;
+	now++;
+      }
+      if(!strcmp(opcode,".globl")){
+	free(buf_cp);
+	free(instr_read);
+	return EMPTY_LINE;
+      }
+    }else{
+      if((instr_read->opcode=get_instr(opcode))==-1) err=UNKNOWN_INSTRUCT;
+      if(is_break){
+	(instr_read->opcode)|= _BREAK ;
+	is_break=0;
+      }
+      now+=pos_delim+1;
+      rest-=pos_delim+1;
+      while(Is_Space(*now)&&rest>0){
+	rest--;
+	now++;
+      }
+      /* <op> |a1,a2,a3
+	 <op> |a1,a2(a3) */
+      i=0;
+      while(i<4&&rest>0){
+	pos_delim=search_delim(now,rest);
+	if (pos_delim<0){
+	  if(rest==0) break;
+	  pos_delim=rest;
 	}
-	if(rest<=0){
-	  printf("Error(line %d): expected ')'",d_lines);
-	  err=SYNTAX_ERROR;
-	  break;
-	}
-	pos_delim=search(')',now,rest);
 	strncpy(operands[i],now,pos_delim);
+	operands[i][pos_delim]=0;
 	instr_read->operands[i]=get_operand(operands[i],7,pc,instr_read->opcode);
 	if(instr_read->operands[i]==SYNTAX_ERROR){
 	  err=SYNTAX_ERROR;
@@ -255,17 +249,37 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
 	i++;
 	now+=pos_delim+1;
 	rest-=pos_delim+1;
+	if(now[pos_delim]=='('){
+	  while(Is_Space(*now)&&rest>0){
+	    rest--;
+	    now++;
+	  }
+	  if(rest<=0){
+	    printf("Error(line %d): expected ')'",d_lines);
+	    err=SYNTAX_ERROR;
+	    break;
+	  }
+	  pos_delim=search(')',now,rest);
+	  strncpy(operands[i],now,pos_delim);
+	  instr_read->operands[i]=get_operand(operands[i],7,pc,instr_read->opcode);
+	  if(instr_read->operands[i]==SYNTAX_ERROR){
+	    err=SYNTAX_ERROR;
+	  }
+	  i++;
+	  now+=pos_delim+1;
+	  rest-=pos_delim+1;
+	}
+	while(Is_Space(*now)&&rest>0){
+	  rest--;
+	  now++;
+	}
       }
-      while(Is_Space(*now)&&rest>0){
-	rest--;
-	now++;
-      }
+      while(!list_isempty(last))
+	last=last->next;
+      last->no = pc;
+      list_push(last,instr_read);
+      free(buf_cp);
     }
-    while(!list_isempty(last))
-      last=last->next;
-    last->no = pc;
-    list_push(last,instr_read);
-    free(buf_cp);
   }else{
     free(buf_cp);
     free(instr_read);

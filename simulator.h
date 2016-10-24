@@ -28,4 +28,7 @@ typedef struct instr_list Instr_list;
 
 Instruct instruct_get(Instr_list l);
 Instr_list instruct_load(int fd);
+
+#define Rev_bits(i) ((((i)&1)<<7)|(((i)&2)<<5)|(((i)&4)<<3)|(((i)&8)<<1)|(((i)&16)>>1)|(((i)&32)>>3)|(((i)&64)>>5)|(((i)&128)>>7))
+
 #endif
