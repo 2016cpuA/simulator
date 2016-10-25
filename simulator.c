@@ -9,6 +9,8 @@
 
 /*readline.cに定義*/
 extern Instruct *load_instruct(int fd,char* output_instr_file_name,int *size);
+/*assemble.cに定義*/
+int make_code(int out_fd,Instruct *instr,int n);
 
 #define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++) (sim).reg[_i]=0;(sim).pc=0;} while(0);
 #define Is_break(opcode) ((opcode)&_BREAK)
@@ -43,47 +45,6 @@ void print_regs(Simulator sim){
   }
 
   fprintf(stderr,"PC=%d\n",sim.pc);
-}
-
-void conv(int code,char buf[4]){
-  buf[0]=(char)Rev_bits(code&0xFF);
-  buf[1]=(char)Rev_bits((code&0xFF00)>>8);
-  buf[2]=(char)Rev_bits((code&0xFF0000)>>16);
-  buf[3]=(char)Rev_bits((code&0xFF000000)>>24);
-}
-
-int make_code(int out_fd,Instruct *instr,int n){
-  int i,j,op[4],instr_type,code,written=0;
-  char buf[4];
-
-  for(i=0;i<n;i++){
-    if((instr_type=judge_type(instr[i].opcode))>0){
-      switch(instr_type){
-      case TYPE_R:
-	fetch_r(NULL,op,instr[i]);
-	code=make_code_r(instr[i].opcode&MASK_OP_FUN,op[0],op[1],op[2],op[3]);
-	conv(code,buf);
-	for(j=0;j<4;j++)
-	  written+=write(out_fd,(void*)(buf+j),1);
-	break;
-      case TYPE_I:
-	fetch_i(NULL,op,instr[i]);
-	code=make_code_i(instr[i].opcode&MASK_OP_FUN,op[0],op[1],op[2]);
-	conv(code,buf);
-	for(j=0;j<4;j++)
-	  written+=write(out_fd,(void*)(buf+j),1);
-	break;
-      case TYPE_J:
-	fetch_j(NULL,op,instr[i]);
-	code=make_code_j(instr[i].opcode&MASK_OP_FUN,op[0]);
-	conv(code,buf);
-	for(j=0;j<4;j++)
-	  written+=write(out_fd,(void*)(buf+j),1);
-	break;
-      }
-    }
-  }
-  return written;
 }
 
 int simulation(Instruct *instr, int n){
