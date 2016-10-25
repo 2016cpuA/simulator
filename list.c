@@ -19,6 +19,14 @@ Instr_list *list_init(){
 int list_isempty(Instr_list *instr_l){
   return (instr_l->next==NULL);
 }
+void list_free(Instr_list *instr_l){
+  if(!list_isempty(instr_l)){
+    list_free(instr_l->next);
+  }
+  free(instr_l->instr);
+  free(instr_l);
+}
+
 
 void list_push(Instr_list *instr_l,Instruct *new_instr){
   Instr_list *new=(Instr_list*)malloc(sizeof(Instr_list));
@@ -42,11 +50,20 @@ void list_display(Instr_list *instr_l,FILE* out_file){
   }
 }
 
-void list_free(Instr_list *instr_l){
-  if(!list_isempty(instr_l)){
-    list_free(instr_l->next);
+void list_append(Instr_list *ldest,Instr_list *lsrc){
+  Instr_list *last=ldest;
+  if(!list_isempty(lsrc)){
+    if(!list_isempty(ldest)){
+      while(list_isempty(last->next))
+	last=last->next;
+      list_free(last->next);
+      last->next=lsrc;
+      lsrc=list_init();
+    }else{
+      *ldest=*lsrc;
+      free(lsrc);
+      lsrc=list_init();
+    }
   }
-  free(instr_l->instr);
-  free(instr_l);
 }
 
