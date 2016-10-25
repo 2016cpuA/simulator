@@ -14,6 +14,7 @@ extern int make_code(int out_fd,Instruct *instr,int n);
 extern int iter_max;
 extern int debug;
 extern int execute;
+extern int binary_output;
 /*sim_binary.c*/
 extern int _sim_binary(int program_fd,char *output_instr_file_name);
 /*instructs.c*/
@@ -23,7 +24,7 @@ extern FILE *output_file;
 int main(int argc,char* argv[]){
   int program_fd,out_binary_fd=-1;
   int input_binary=0;
-  int binary_output=0;
+  binary_output=0;
   execute=1;
   debug=0;
   iter_max=0x7fffffff;
@@ -85,7 +86,7 @@ int main(int argc,char* argv[]){
         _sim_binary(program_fd,output_instr_file_name);
       }else{
 	if(binary_output){
-	  if((out_binary_fd=open(binary_file_name,O_WRONLY | O_CREAT,00666))<0){
+	  if((out_binary_fd=open(binary_file_name,O_WRONLY | O_CREAT | O_TRUNC,00666))<0){
 	    fprintf(stderr,"Error: file '%s' not found\n",argv[1]);
 	  }else{
 	    fprintf(stderr,"writing code into file '%s'\n",binary_file_name);

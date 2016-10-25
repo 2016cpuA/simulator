@@ -9,8 +9,10 @@
 
 /*readline.cに定義*/
 extern Instruct *load_instruct(int fd,char* output_instr_file_name,int *size);
+extern Label *labels;
+extern int get_pc(Label *labels,char *name_label);
 /*assemble.cに定義*/
-int make_code(int out_fd,Instruct *instr,int n);
+extern int make_code(int out_fd,Instruct *instr,int n);
 
 #define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++) (sim).reg[_i]=0;(sim).pc=0;} while(0);
 #define Is_break(opcode) ((opcode)&_BREAK)
@@ -18,6 +20,7 @@ int make_code(int out_fd,Instruct *instr,int n);
 #define Set_break(opcode) ((opcode)|_BREAK)
 /*オプションから受け取った変数*/
 int iter_max,debug,execute;
+int binary_output;
 
 void print_regs(Simulator sim){
   int i;
@@ -175,5 +178,7 @@ int _sim(int program_fd,char *output_instr_file_name,int out_binary_fd){
     if(debug) step_simulation(instr,n);
     else simulation(instr,n);
   }
+  if(debug)
+    free(labels);
   return 0;
 }

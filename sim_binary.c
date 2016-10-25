@@ -40,6 +40,8 @@ int simulation_bin(int *bin, int n){
   while(sim.pc<n&&clocks<iter_max){
     /*FETCH*/
     now=bin[sim.pc];
+    if(now==0xffffffff)
+      break;
     code_fetch(now,&opcode,op);
     instr_type=judge_type(opcode);
     ins.opcode=opcode;
@@ -166,7 +168,8 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
     bin=(int*)malloc(n*sizeof(int));
     read(program_fd,bin,n<<2);
     for(i=0;i<n;i++){
-      tmp=bin[i];
+      if(bin[i]!=0xffffffff)
+	tmp=bin[i];
       bin[i]=(Rev_bits((tmp&0xFF000000)>>24)<<24)|(Rev_bits((tmp&0xFF0000)>>16)<<16)|(Rev_bits((tmp&0xFF00)>>8)<<8)|Rev_bits(tmp&0xFF);
     }
     if(output_instr_file!=NULL){
