@@ -25,6 +25,12 @@ struct instr_list{
   struct instr_list *next;
 };
 
+/*ラベル構造体の定義*/
+typedef struct label{
+  char name[100];
+  int pc;
+} Label;
+
 typedef struct instr_list Instr_list;
 
 Instruct instruct_get(Instr_list l);

@@ -1,12 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "simulator.h"
 #include "instructs.h"
+
+/*simulator.c*/
 extern int debug;
+/*readline.c*/
+extern Label *labels;
+int n_label;
 
 void conv(int code,char buf[4]){
   buf[0]=(char)Rev_bits(code&0xFF);
@@ -16,7 +22,7 @@ void conv(int code,char buf[4]){
 }
 
 int make_code(int out_fd,Instruct *instr,int n){
-  int i,j,op[4],instr_type,code,written=0;
+  int i,j,len,op[4],instr_type,code,written=0;
   char buf[4];
 
   for(i=0;i<n;i++){
@@ -46,6 +52,25 @@ int make_code(int out_fd,Instruct *instr,int n){
       }
     }
   }
+  fprintf(stderr,"%d\n",debug);
+  if(debug){
+    i=0xffffffff;
+    j=0;
+    written+=write(out_fd,(void*)(&i),4);
+    written+=write(out_fd,(void*)(&n_label),4);
+    for(i=0;i<n_label;i++){
+      len=strlen(labels[i].name);
+      written+=write(out_fd,(void*)(&len),4);
+      written+=write(out_fd,(void*)(labels[i].name),len+1);
+      written+=write(out_fd,(void*)(&(labels[i].pc)),sizeof(int));
+    }
+  }
+  
   return written;
 }
 
+
+/*
+program
+0xffffffff
+*/
