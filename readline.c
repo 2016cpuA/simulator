@@ -17,12 +17,9 @@
 
 /*空白文字の定義*/
 #define Is_Space(ch) (ch==' '||ch=='\t'||ch=='\r')
-
-/*ラベル構造体の定義*/
-typedef struct label{
-  char name[100];
-  int pc;
-} Label;
+/*simulator.c*/
+extern int binary_output;
+extern int debug;
 
 typedef struct program{
   char filename[100];
@@ -508,7 +505,8 @@ int readline(int fd,Instr_list *instr_l){
       
     }else{
       /*step 2*/
-      free(labels);
+      if(!debug)
+	free(labels);
       if(ret_status==0){
 	ret_status=l;
       }
