@@ -151,7 +151,7 @@ int step_simulation_bin(Instruct *instr, int n) {
   return 0;
 }
 int _sim_binary(int program_fd,char *output_instr_file_name){
-  int n,pc;
+  int n,pc=0;
   int *bin;
   register int i,tmp,j;
   FILE *output_instr_file;
@@ -171,22 +171,25 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
     read(program_fd,bin,n<<2);
     for(i=0;i<n;i++){
       if(bin[i]!=0xffffffff){
-      tmp=bin[i];
-      bin[i]=(Rev_bits((tmp&0xFF000000)>>24)<<24)|(Rev_bits((tmp&0xFF0000)>>16)<<16)|(Rev_bits((tmp&0xFF00)>>8)<<8)|Rev_bits(tmp&0xFF);
+	tmp=bin[i];
+	bin[i]=(Rev_bits((tmp&0xFF000000)>>24)<<24)|(Rev_bits((tmp&0xFF0000)>>16)<<16)|(Rev_bits((tmp&0xFF00)>>8)<<8)|Rev_bits(tmp&0xFF);
       }else{
-	pc=i-1;
+	pc=i;
 	break;
       }
     }
-    i++;
-    n_label=bin[i];
-    labels=(Label*)malloc(n_label*sizeof(Label));
-    i++;
-    for(j=0;j<n_label;j++){
-      strncpy(labels[j].name,(char*)((void*)(bin+i+1)),bin[i]);
-      i+=((bin[i])>>2)+2;
-      labels[j].pc=bin[i];
+    if(pc==0) pc=n;
+    else{
       i++;
+      n_label=bin[i];
+      labels=(Label*)malloc(n_label*sizeof(Label));
+      i++;
+      for(j=0;j<n_label;j++){
+	strncpy(labels[j].name,(char*)((void*)(bin+i+1)),bin[i]);
+	i+=((bin[i])>>2)+2;
+	labels[j].pc=bin[i];
+	i++;
+      }
     }
     if(output_instr_file!=NULL){
       print_code(output_instr_file,bin,n);
@@ -197,7 +200,8 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
 	else*/
       simulation_bin(bin,pc);
     }    
-    free(labels);
+    if(labels!=NULL)
+      free(labels);
     return 0;
   }else{
     fprintf(stderr,"Error: failed to load; could not open binary file\n");
