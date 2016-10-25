@@ -62,6 +62,7 @@ int make_code(int out_fd,Instruct *instr,int n){
       len=strlen(labels[i].name);
       written+=write(out_fd,(void*)(&len),4);
       written+=write(out_fd,(void*)(labels[i].name),len+1);
+      written+=write(out_fd,(void*)(&j),((((len)>>2)+1)<<2)-(len+1));
       written+=write(out_fd,(void*)(&(labels[i].pc)),sizeof(int));
     }
   }

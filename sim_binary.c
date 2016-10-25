@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -16,7 +17,8 @@
 extern int iter_max,debug,execute;
 extern void print_regs(Simulator sim);
 /*readline.c*/
-
+Label *labels;
+int n_label;
 void print_code(FILE *output_instr_file, int *bin, int n){
   int i,op[4];
   Instruct ins;
@@ -149,9 +151,9 @@ int step_simulation_bin(Instruct *instr, int n) {
   return 0;
 }
 int _sim_binary(int program_fd,char *output_instr_file_name){
-  int n;
+  int n,pc;
   int *bin;
-  register int i,tmp;
+  register int i,tmp,j;
   FILE *output_instr_file;
   /*命令のロード*/
   n=lseek(program_fd,0,SEEK_END)>>2;
@@ -168,16 +170,31 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
     bin=(int*)malloc(n*sizeof(int));
     read(program_fd,bin,n<<2);
     for(i=0;i<n;i++){
-      if(bin[i]!=0xffffffff)
-	tmp=bin[i];
+      if(bin[i]!=0xffffffff){
+      tmp=bin[i];
       bin[i]=(Rev_bits((tmp&0xFF000000)>>24)<<24)|(Rev_bits((tmp&0xFF0000)>>16)<<16)|(Rev_bits((tmp&0xFF00)>>8)<<8)|Rev_bits(tmp&0xFF);
+      }else{
+	pc=i-1;
+	break;
+      }
     }
+    i++;
+    n_label=bin[i];
+    labels=(Label*)malloc(n_label*sizeof(Label));
+    i++;
+    for(j=0;j<n_label;j++){
+      strncpy(labels[j].name,(char*)((void*)(bin+i+1)),bin[i]);
+      i+=((bin[i])>>2)+2;
+      labels[j].pc=bin[i];
+      i++;
+    }
+    free(labels);
     if(output_instr_file!=NULL){
       print_code(output_instr_file,bin,n);
       fclose(output_instr_file);
     }
     if(execute&&n>=0){
-      /*if(debug) step_simulation_bin(instr,n);
+      /*if(debug) step_simulation_bin(instr,pc);
 	else*/
       simulation_bin(bin,n);
     }    
