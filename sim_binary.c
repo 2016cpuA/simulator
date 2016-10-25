@@ -188,7 +188,6 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
       labels[j].pc=bin[i];
       i++;
     }
-    free(labels);
     if(output_instr_file!=NULL){
       print_code(output_instr_file,bin,n);
       fclose(output_instr_file);
@@ -196,8 +195,9 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
     if(execute&&n>=0){
       /*if(debug) step_simulation_bin(instr,pc);
 	else*/
-      simulation_bin(bin,n);
+      simulation_bin(bin,pc);
     }    
+    free(labels);
     return 0;
   }else{
     fprintf(stderr,"Error: failed to load; could not open binary file\n");
