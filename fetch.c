@@ -173,7 +173,7 @@ int fetch_i(int (**instr)(Simulator*,int,int,int),int op[4],Instruct ins){
     if(op!=NULL){
       op[0]=ins.operands[0];op[1]=ins.operands[1];op[2]=ins.operands[2];}
     break;
-  case LA: if(instr!=NULL) *instr=instr_addi;
+  case LA: if(instr!=NULL) *instr=instr_lw;
     if(op!=NULL){
       op[0]=0;op[1]=ins.operands[0];op[2]=ins.operands[1];}
     break;

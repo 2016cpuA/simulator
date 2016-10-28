@@ -248,6 +248,8 @@ int get_operand(char *op,int type_op,int pc,int opcode){
       op_fun=opcode&MASK_OP_FUN;
       if((op_fun==J)||(op_fun==JAL))
 	return dest_pc+offset;
+      else if(op_fun==LA)
+	return dest_pc;
       else
 	return dest_pc-pc;
     }else{
