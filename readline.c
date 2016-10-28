@@ -169,7 +169,10 @@ int convert_data(Instr_list *prepare,int *mem){
 	ins=(Instruct*)malloc(sizeof(Instruct));
 	ins->opcode=ORI;
 	ins->operands[0]=1;
-	ins->operands[1]=0;
+	if(data_hi!=0)
+	  ins->operands[1]=1;
+	else
+	  ins->operands[1]=0;	  
 	ins->operands[2]=data_lo;
 	ins->operands[3]=0;
 	list_push(now,ins);
