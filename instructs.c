@@ -33,6 +33,8 @@ int get_instr(char *name){
     return JR;
   }else if(!strcmp(name,"LW")){
     return LW;
+  }else if(!strcmp(name,"LA")){
+    return LA;
   }else if(!strcmp(name,"SW")){
     return SW;
   }else if(!strcmp(name,"AND")){
@@ -99,6 +101,7 @@ void print_instr(Instruct instr,FILE* out_file){
   case J: Print("J");break;
   case JAL: Print("JAL");break;
   case JR: Print("JR");break;
+  case LA: Print("LA");break;
   case LW: Print("LW");break;
   case SW: Print("SW");break;
   case AND: Print("AND");break;
@@ -141,7 +144,7 @@ int instr_nop(Simulator *sim,int rs,int rt,int rd,int sa){
   Inc(sim->pc);
   return 0;
 }
-
+/*
 int instr_clear(Simulator *sim,int rs,int rt,int rd,int sa){
   int i;
   for(i=0;i<REGS;i++){
@@ -153,7 +156,7 @@ int instr_clear(Simulator *sim,int rs,int rt,int rd,int sa){
   Inc(sim->pc);
   return 0;
 }
-
+*/
 int instr_add(Simulator *sim,int rs,int rt,int rd,int sa) {
   sim->reg[rd] = sim->reg[rs] + sim->reg[rt];
   Inc(sim->pc);
@@ -185,7 +188,7 @@ int instr_slt(Simulator *sim,int rs,int rt,int rd,int sa) {
   return 0; 
 }
 int instr_jr(Simulator *sim,int rs,int rt,int rd,int sa) {
-  sim->pc = sim->reg[rs];
+  sim->pc = sim->reg[rt];
   return 0;
 }
 
@@ -210,10 +213,8 @@ int instr_xor(Simulator *sim,int rs,int rt,int rd,int sa) {
 int instr_sll(Simulator *sim,int rs,int rt,int rd,int sa) {
   if(rs!=0||rt!=0||rd!=0||sa!=0){
     sim->reg[rd] = (sim->reg[rt]) << sa;
-    Inc(sim->pc);
-  }else{
-    instr_clear(sim,0,0,0,0);
   }
+  Inc(sim->pc);
   return 0;
 }
 #define Sgn(x) ((x)<0?-2147483648:0)
@@ -258,7 +259,8 @@ int instr_move(Simulator *sim,int rs,int rt,int imm){
 }
 
 int instr_addi(Simulator *sim,int rs,int rt,int imm) {
-  sim->reg[rt] = sim->reg[rs] + imm;
+  int _imm = (int)((short)(imm&0xFFFF));
+  sim->reg[rt] = sim->reg[rs] + _imm;
   (sim->pc)++;
   return 0;
 } 

@@ -17,6 +17,7 @@
 #define J 0x08000000
 #define JAL 0x0C000000
 #define JR 8
+#define LA 0x02000100
 #define LW 0x8C000000
 #define SW 0xAC000000
 #define AND 0x24

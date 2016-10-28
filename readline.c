@@ -132,6 +132,69 @@ int search_delim(char* buf,int bufsize){
   return -1;
 }
 
+/*.wordの変換*/
+int convert_data(Instr_list *prepare,int *mem){
+  int n_instr=0,align,data_hi,data_lo;
+  Instr_list *now;
+  Instruct *ins,dest;
+  now=prepare;
+  while(!list_isempty(now)){
+    dest=*(now->instr);
+    if(dest.opcode==_WORD){
+      data_hi=dest.operands[0];
+      align=dest.operands[1];
+      data_lo=data_hi&0xFFFF;
+      data_hi=data_hi>>16;
+      list_pop(now);
+      if(data_hi!=0){
+	ins=(Instruct*)malloc(sizeof(Instruct));
+	ins->opcode=ORI;
+	ins->operands[0]=1;
+	ins->operands[1]=0;
+	ins->operands[2]=data_hi&0xFFFF;
+	ins->operands[3]=0;
+	list_push(now,ins);
+	now=now->next;
+	ins=(Instruct*)malloc(sizeof(Instruct));
+	ins->opcode=SLL;
+	ins->operands[0]=1;
+	ins->operands[1]=1;
+	ins->operands[2]=16;
+	ins->operands[3]=0;
+	list_push(now,ins);
+	now=now->next;
+	n_instr+=2;
+      }
+      if(data_lo!=0){
+	ins=(Instruct*)malloc(sizeof(Instruct));
+	ins->opcode=ORI;
+	ins->operands[0]=1;
+	ins->operands[1]=0;
+	ins->operands[2]=data_lo;
+	ins->operands[3]=0;
+	list_push(now,ins);
+	now=now->next;
+	n_instr++;
+      }
+      if(data_hi!=0||data_lo!=0){
+	ins=(Instruct*)malloc(sizeof(Instruct));
+	ins->opcode=SW;
+	ins->operands[0]=1;
+	ins->operands[1]=*mem;
+	ins->operands[2]=30;	
+	ins->operands[3]=0;
+	list_push(now,ins);
+	now=now->next;
+	n_instr++;
+	*mem+=align;
+      }
+    }else{
+      now=now->next;
+    }
+  }
+  return n_instr;
+}  
+
 /*ディレクティブのパース*/
 int which_directive(char *opcode){
   if(!strcmp(opcode,".globl")){
@@ -344,7 +407,7 @@ int readline(int fd,Instr_list *instr_l){
   int directive;
   int mem=0,align=4;
   Instr_list *prepare = list_init();
-  Instr_list *tail_perpare=prepare;
+  Instr_list *tail_prepare=prepare;
   /*step 2*/
   Instruct *j_ep;
   int interpret_status,ret_status=0;
@@ -444,6 +507,26 @@ int readline(int fd,Instr_list *instr_l){
 	      }
 	    }else if(directive==_WORD){
 	      mem+=(align>4)?align:4;
+	      j_ep=(Instruct*)malloc(sizeof(Instruct));
+	      j_ep->opcode=_WORD;
+	      while(Is_Space(*now)){
+		now++;
+	      } 
+	      if(*now){
+		pos_colon=search_space(now,strlen(now));
+		if(pos_colon<0){
+		  pos_colon=strlen(now);
+		  strcpy(opcode,now);
+		}else{
+		  strncpy(opcode,now,pos_colon);
+		}
+		j_ep->operands[0]=get_operand(now,7,0,_WORD);
+		j_ep->operands[1]=(align>4)?align:4;
+		list_push(tail_prepare,j_ep);
+		tail_prepare=tail_prepare->next;
+	      }else{
+		free(j_ep);
+	      }
 	    }else{
 	      fprintf(stderr,"Warning: unknown operand '%s'\n",opcode);
 	    }
@@ -492,14 +575,39 @@ int readline(int fd,Instr_list *instr_l){
 	  fprintf(stderr,"Warning: unknown global label '%s'\n",linker[links].name);
 	}
       }
+      j_ep=(Instruct*)malloc(sizeof(Instruct));
+      j_ep->opcode=0;
+      j_ep->operands[0]=0;
+      j_ep->operands[1]=0;
+      j_ep->operands[2]=0;
+      j_ep->operands[3]=0;
+      list_push(instr_l,j_ep);
+      offset++;
+      mem=0;
+      offset+=convert_data(prepare,&mem);
+      j_ep=(Instruct*)malloc(sizeof(Instruct));
+      j_ep->opcode=ADDI;
+      j_ep->operands[0]=30;
+      j_ep->operands[1]=0;
+      j_ep->operands[2]=mem;
+      tail_prepare=prepare;
+      while(!list_isempty(tail_prepare))
+	tail_prepare=tail_prepare->next;
+      list_push(tail_prepare,j_ep);
+      offset++;
+      list_append(instr_l,prepare);
       if((pos=get_pc(linker,ENTRY_POINT))<0){
 	fprintf(stderr,"Warning: missing entry point; add '.globl %s' on your program, and make sure label '%s' exists.\n",ENTRY_POINT,ENTRY_POINT);
       }else{
-	j_ep=(Instruct*)malloc(sizeof(Instruct));
-	j_ep->opcode=J;
-	offset+=1;
-	j_ep->operands[0]=pos+offset;
-	list_push(instr_l,j_ep);
+	if(pos!=0){
+	  j_ep=(Instruct*)malloc(sizeof(Instruct));
+	  j_ep->opcode=J;
+	  offset++;
+	  j_ep->operands[0]=pos+offset;
+	  while(!list_isempty(tail_prepare))
+	    tail_prepare=tail_prepare->next;
+	  list_push(tail_prepare,j_ep);
+	}
       }
       d_lines=1;
       
@@ -508,7 +616,7 @@ int readline(int fd,Instr_list *instr_l){
       if(!debug)
 	free(labels);
       if(ret_status==0){
-	ret_status=l;
+	ret_status=l+offset;
       }
       list_free(prepare);
     }

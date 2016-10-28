@@ -35,6 +35,16 @@ void list_push(Instr_list *instr_l,Instruct *new_instr){
   instr_l->next=new;
 }
 
+void list_pop(Instr_list *instr_l){
+  Instr_list *dest;
+  if(!list_isempty(instr_l)){
+    free(instr_l->instr);
+    dest=instr_l->next;
+    *instr_l=*(instr_l->next);
+    free(dest);
+  }
+}
+
 void list_display(Instr_list *instr_l,FILE* out_file){
   Instruct target;
   Instr_list *now = instr_l;
@@ -54,16 +64,15 @@ void list_append(Instr_list *ldest,Instr_list *lsrc){
   Instr_list *last=ldest;
   if(!list_isempty(lsrc)){
     if(!list_isempty(ldest)){
-      while(list_isempty(last->next))
+      while(!list_isempty(last))
 	last=last->next;
-      list_free(last->next);
-      last->next=lsrc;
-      lsrc=list_init();
-    }else{
-      *ldest=*lsrc;
-      free(lsrc);
-      lsrc=list_init();
     }
+    *last=*lsrc;
+    lsrc->instr=(Instruct*)malloc(INSTR_SIZE);
+    lsrc->instr->opcode=INSTR_END;
+    lsrc->next=NULL;
+    
   }
+  
 }
 

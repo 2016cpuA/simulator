@@ -7,6 +7,7 @@
 
 Instr_list *list_init();
 int list_isempty(Instr_list *instr_l);
+void list_pop(Instr_list *instr_l);
 void list_push(Instr_list *instr_l,Instruct *new_instr);
 void list_free(Instr_list *instr_l);
 void list_display(Instr_list *instr_l);
