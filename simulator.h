@@ -21,8 +21,9 @@ typedef struct instruct Instruct;
 
 struct instr_list{
   int no;
-  Instruct *instr;  
+  Instruct instr;  
   struct instr_list *next;
+  struct instr_list *back;
 };
 
 /*ラベル構造体の定義*/

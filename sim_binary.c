@@ -8,7 +8,7 @@
 #include "simulator.h"
 #include "instructs.h"
 
-#define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++) (sim).reg[_i]=0;(sim).pc=0;} while(0);
+#define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++){ (sim).reg[_i]=0;(sim).freg[_i]=0;}(sim).pc=0;} while(0);
 #define Is_break(opcode) ((opcode)&_BREAK)
 #define Clear_break(opcode) ((opcode)&MASK_OP_FUN)
 #define Set_break(opcode) ((opcode)|_BREAK)

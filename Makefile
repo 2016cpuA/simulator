@@ -1,5 +1,5 @@
 CC=gcc
-FLAGS=-Wall -g 
+FLAGS=-Wall -g
 
 simulator: main.c assemble.o sim_binary.o simulator.o readline.o list.o instructs.o fetch.o
 	$(CC) $(FLAGS) -o $@ $^
