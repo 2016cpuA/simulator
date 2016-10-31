@@ -14,6 +14,7 @@ extern int make_code(int out_fd,Instruct *instr,int n);
 extern int iter_max;
 extern int debug;
 extern int execute;
+extern int binary_output;
 /*sim_binary.c*/
 extern int _sim_binary(int program_fd,char *output_instr_file_name);
 /*instructs.c*/
@@ -29,6 +30,7 @@ int main(int argc, char* argv[]) {
   iter_max = 0x7fffffff;
   input_file = stdin;
   output_file = stdout;
+
   int ch;
   char _ch;
   extern char *optarg;
@@ -75,9 +77,7 @@ int main(int argc, char* argv[]) {
       fprintf(stderr,"Warning: Unknown option '%s'\n",&_ch);
     }
   }
-
-
-  if (optind >= argc) {
+if (optind >= argc) {
     fprintf(stderr, "Error: no input file\n");
   } else {
     if ((program_fd = open(argv[optind], O_RDONLY))<0){

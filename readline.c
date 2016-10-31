@@ -17,12 +17,9 @@
 
 /*空白文字の定義*/
 #define Is_Space(ch) (ch==' '||ch=='\t'||ch=='\r')
-
-/*ラベル構造体の定義*/
-typedef struct label{
-  char name[100];
-  int pc;
-} Label;
+/*simulator.c*/
+extern int binary_output;
+extern int debug;
 
 typedef struct program{
   char filename[100];
@@ -135,6 +132,23 @@ int search_delim(char* buf,int bufsize){
   return -1;
 }
 
+/*ディレクティブのパース*/
+int which_directive(char *opcode){
+  if(!strcmp(opcode,".globl")){
+    return _GLOBL;
+  }else if(!strcmp(opcode,".text")){
+    return _TEXT;
+  }else if(!strcmp(opcode,".data")){
+    return _DATA;
+  }else if(!strcmp(opcode,".word")){
+    return _WORD;
+  }else if(!strcmp(opcode,".align")){
+    return _ALIGN;
+  }else{
+    return UNKNOWN_INSTRUCT;
+  }
+}
+
 /*Parser本体*/
 /*オペランド部分のみ*/
 int get_operand(char *op,int type_op,int pc,int opcode){
@@ -184,6 +198,7 @@ int get_operand(char *op,int type_op,int pc,int opcode){
 int is_break=0;
 /*テキストセクションかデータセクションか*/
 int section=1;
+int data_width=4;
 #define SECTION_TEXT 1
 #define SECTION_DATA 0
 int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
@@ -193,6 +208,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
   int i,rest=bufsize-1,pos_delim,err=NO_ERROR;
   char opcode[16],operands[4][32];
   Instr_list *last=instr_l;
+  int directive;
   strcpy(buf_cp,buf);
   for(i=0;i<4;i++)
     instr_read->operands[i]=0;
@@ -236,11 +252,12 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
 	rest--;
 	now++;
       }
-      if(!strcmp(opcode,".globl")){
-	free(buf_cp);
-	free(instr_read);
-	return EMPTY_LINE;
+      directive=which_directive(opcode);
+      if(directive==_GLOBL){
       }
+      free(buf_cp);
+      free(instr_read);
+      return EMPTY_LINE;
     }else{
       if((instr_read->opcode=get_instr(opcode))==-1) err=UNKNOWN_INSTRUCT;
       if(is_break){
@@ -321,12 +338,15 @@ int readline(int fd,Instr_list *instr_l){
   int colons=0;
   int links=0;
   int pos;
-  Instruct *j_ep;
   /*step 1*/
   char *now,opcode[16];
   int pos_colon;
-  
+  int directive;
+  int mem=0,align=4;
+  Instr_list *prepare = list_init();
+  Instr_list *tail_perpare=prepare;
   /*step 2*/
+  Instruct *j_ep;
   int interpret_status,ret_status=0;
   /*ここまで*/
   for(step=0;step<3;step++){
@@ -368,7 +388,11 @@ int readline(int fd,Instr_list *instr_l){
 	      fprintf(stderr,"Error: Name 'SYS_EXIT' could not be used as label name\n");
 	      ret_status=-1;
 	    }
-	    labels[colons].pc=l;
+	    if(section==SECTION_TEXT){
+	      labels[colons].pc=l;
+	    }else{
+	      labels[colons].pc=mem;
+	    }
 	    colons++;
 	  }
 	  if(pos_colon>=0){
@@ -388,9 +412,11 @@ int readline(int fd,Instr_list *instr_l){
 	      strcpy(opcode,now);
 	    }else{
 	      strncpy(opcode,now,pos_colon);
+	      opcode[pos_colon]=0;
 	      now+=pos_colon+1;
 	    }
-	    if(!strcmp(opcode,".globl")){
+	    directive=which_directive(opcode);
+	    if(directive==_GLOBL){
 	      while(Is_Space(*now)){
 		now++;
 	      } 
@@ -404,8 +430,24 @@ int readline(int fd,Instr_list *instr_l){
 		}
 		links++;
 	      }
+	    }else if(directive==_TEXT){
+	      section=SECTION_TEXT;
+	    }else if(directive==_DATA){
+	      section=SECTION_DATA;
+	    }else if(directive==_ALIGN){
+	      while(Is_Space(*now)){
+		now++;
+	      } 
+	      align=1<<(get_operand(now,7,0,directive));
+	      if(align>64){
+		fprintf(stderr,"Warning: align parameter too big.\n");
+	      }
+	    }else if(directive==_WORD){
+	      mem+=(align>4)?align:4;
+	    }else{
+	      fprintf(stderr,"Warning: unknown operand '%s'\n",opcode);
 	    }
-	  }else if(*now!=0&&*now!='#'&&*now!='.'){
+	  }else if(*now!=0&&*now!='#'){
 	    /*行の最後まで空白or単行コメントがあったら行数をカウントしない*/
 	    l++;
 	  }
@@ -463,10 +505,12 @@ int readline(int fd,Instr_list *instr_l){
       
     }else{
       /*step 2*/
-      free(labels);
+      if(!debug)
+	free(labels);
       if(ret_status==0){
 	ret_status=l;
       }
+      list_free(prepare);
     }
     /*ここまで*/
   }

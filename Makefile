@@ -1,12 +1,14 @@
 CC=gcc
-FLAGS=-Wall -g
+FLAGS=-Wall -g -O2
 
-simulator: main.c sim_binary.o simulator.o readline.o list.o instructs.o fetch.o
+simulator: main.c assemble.o sim_binary.o simulator.o readline.o list.o instructs.o fetch.o
 	$(CC) $(FLAGS) -o $@ $^
-sim_binary.o: sim_binary.c readline.o list.o instructs.o fetch.o
+sim_binary.o: sim_binary.c assemble.o readline.o list.o instructs.o fetch.o
 	$(CC) $(FLAGS) -c $< 
-simulator.o: simulator.c readline.o list.o instructs.o fetch.o
+simulator.o: simulator.c assemble.o readline.o list.o instructs.o fetch.o
 	$(CC) $(FLAGS) -c $< 
+assemble.o:assemble.c readline.o list.o instructs.o fetch.o
+	$(CC) $(FLAGS) -c $<
 readline.o: readline.c list.o instructs.o
 	$(CC) $(FLAGS) -c $< 
 list.o: list.c list.h
