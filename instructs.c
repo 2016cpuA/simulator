@@ -126,30 +126,26 @@ void print_instr(Instruct instr,FILE* out_file){
   }
 }
 
-int make_code_r(int opcode,int rs,int rt,int rd,int sa){
+int make_code_r(int opcode,int rs,int rt,int rd,int sa) {
   return (opcode&0xfc00003f)|((rs&0x1f)<<21)|((rt&0x1f)<<16)|((rd&0x1f)<<11)|((sa&0x1f)<<6);
 }
-int make_code_i(int opcode,int rs,int rt,int imm){
+int make_code_i(int opcode,int rs,int rt,int imm) {
   return (opcode&0xfc000000)|((rs&0x1f)<<21)|((rt&0x1f)<<16)|(imm&0xffff);
 }
 
-int make_code_j(int opcode,int instr_index){
+int make_code_j(int opcode,int instr_index) {
   return (opcode&0xfc000000)|(instr_index&0x03ffffff);
 }
 
-int instr_nop(Simulator *sim,int rs,int rt,int rd,int sa){
+int instr_nop(Simulator *sim,int rs,int rt,int rd,int sa) {
   Inc(sim->pc);
   return 0;
 }
 
-int instr_clear(Simulator *sim,int rs,int rt,int rd,int sa){
+int instr_clear(Simulator *sim,int rs,int rt,int rd,int sa) {
   int i;
-  for(i=0;i<REGS;i++){
-    (sim->reg[i])=0;
-  }
-  for(i=0;i<FREGS;i++){
-    (sim->freg[i])=0;
-  }
+  for (i=0;i<REGS;i++) (sim->reg[i])=0;
+  for (i=0;i<FREGS;i++) (sim->freg[i])=0;
   Inc(sim->pc);
   return 0;
 }
