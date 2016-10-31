@@ -200,15 +200,26 @@ int convert_data(Instr_list *prepare,int *mem){
 
 /*ディレクティブのパース*/
 int which_directive(char *opcode){
-  if(!strcmp(opcode,".globl")){
+  long long int x=0;
+  int i;
+  int max = strlen(opcode);
+  if(max>8){
+    return UNKNOWN_INSTRUCT;
+  }
+  for(i=0;i<max;i++){
+    x|=opcode[i];
+    if(i!=max-1)
+      x<<=8;
+  }
+  if(!(x^0x2e676c6f626cL)){
     return _GLOBL;
-  }else if(!strcmp(opcode,".text")){
+  }else if(!(x^0x2e74657874L)){
     return _TEXT;
-  }else if(!strcmp(opcode,".data")){
+  }else if(!(x^0x2e64617461L)){
     return _DATA;
-  }else if(!strcmp(opcode,".word")){
+  }else if(!(x^0x2e776f7264L)){
     return _WORD;
-  }else if(!strcmp(opcode,".align")){
+  }else if(!(x^0x2e616c69676eL)){
     return _ALIGN;
   }else{
     return UNKNOWN_INSTRUCT;
@@ -590,16 +601,18 @@ int readline(int fd,Instr_list *instr_l){
       offset++;
       mem=0;
       offset+=convert_data(prepare,&mem);
-      j_ep=(Instruct*)malloc(sizeof(Instruct));
-      j_ep->opcode=ADDI;
-      j_ep->operands[0]=30;
-      j_ep->operands[1]=0;
-      j_ep->operands[2]=mem;
-      tail_prepare=prepare;
-      while(!list_isempty(tail_prepare))
-	tail_prepare=tail_prepare->next;
-      list_push(tail_prepare,j_ep);
-      offset++;
+      if(mem!=0){
+	j_ep=(Instruct*)malloc(sizeof(Instruct));
+	j_ep->opcode=ADDI;
+	j_ep->operands[0]=30;
+	j_ep->operands[1]=0;
+	j_ep->operands[2]=mem;
+	tail_prepare=prepare;
+	while(!list_isempty(tail_prepare))
+	  tail_prepare=tail_prepare->next;
+	list_push(tail_prepare,j_ep);
+	offset++;
+      }
       list_append(instr_l,prepare);
       if((pos=get_pc(linker,ENTRY_POINT))<0){
 	fprintf(stderr,"Warning: missing entry point; add '.globl %s' on your program, and make sure label '%s' exists.\n",ENTRY_POINT,ENTRY_POINT);
@@ -609,6 +622,7 @@ int readline(int fd,Instr_list *instr_l){
 	  j_ep->opcode=J;
 	  offset++;
 	  j_ep->operands[0]=pos+offset;
+	  tail_prepare=instr_l;
 	  while(!list_isempty(tail_prepare))
 	    tail_prepare=tail_prepare->next;
 	  list_push(tail_prepare,j_ep);

@@ -9,77 +9,88 @@ FILE *input_file;
 FILE *output_file;
 
 int get_instr(char *name){
-  if(!strcmp(name,"ADD")){
+  long long int x=0;
+  int i;
+  int max = strlen(name);
+  if(max>8){
+    return UNKNOWN;
+  }
+  for(i=0;i<max;i++){
+    x|=name[i];
+    if(i!=max-1)
+      x<<=8;
+  }
+  if(!(x^0x616464L)|!(x^0x414444L)){
     return ADD;
-  }else if(!strcmp(name,"ADDI")){
+  }else if(!(x^0x61646469L)|!(x^0x41444449L)){
     return ADDI;
-  }else if(!strcmp(name,"SUB")){
+  }else if(!(x^0x737562L)|!(x^0x535542L)){
     return SUB;
-  }else if(!strcmp(name,"MULT")){
+  }else if(!(x^0x6d756c74L)|!(x^0x4d554c54L)){
     return MULT;
-  }else if(!strcmp(name,"DIV")){
+  }else if(!(x^0x646976L)|!(x^0x444956L)){
     return DIV;
-  }else if(!strcmp(name,"SLT")){
+  }else if(!(x^0x736c74L)|!(x^0x534c54L)){
     return SLT;
-  }else if(!strcmp(name,"BEQ")){
+  }else if(!(x^0x626571L)|!(x^0x424551L)){
     return BEQ;
-  }else if(!strcmp(name,"BNE")){
+  }else if(!(x^0x626e65L)|!(x^0x424e45L)){
     return BNE;
-  }else if(!strcmp(name,"J")){
+  }else if(!(x^0x6aL)|!(x^0x4aL)){
     return J;
-  }else if(!strcmp(name,"JAL")){
+  }else if(!(x^0x6a616cL)|!(x^0x4a414cL)){
     return JAL;
-  }else if(!strcmp(name,"JR")){
+  }else if(!(x^0x6a72L)|!(x^0x4a52L)){
     return JR;
-  }else if(!strcmp(name,"LW")){
+  }else if(!(x^0x6c77L)|!(x^0x4c57L)){
     return LW;
-  }else if(!strcmp(name,"LA")){
+  }else if(!(x^0x6c61L)|!(x^0x4c41L)){
     return LA;
-  }else if(!strcmp(name,"SW")){
+  }else if(!(x^0x7377L)|!(x^0x5357L)){
     return SW;
-  }else if(!strcmp(name,"AND")){
+  }else if(!(x^0x616e64L)|!(x^0x414e44L)){
     return AND;
-  }else if(!strcmp(name,"ANDI")){
+  }else if(!(x^0x616e6469L)|!(x^0x414e4449L)){
     return ANDI;
-  }else if(!strcmp(name,"OR")){
+  }else if(!(x^0x6f72L)|!(x^0x4f52L)){
     return OR;
-  }else if(!strcmp(name,"ORI")){
+  }else if(!(x^0x6f7269L)|!(x^0x4f5249L)){
     return ORI;
-  }else if(!strcmp(name,"XOR")){
+  }else if(!(x^0x786f72L)|!(x^0x584f52L)){
     return XOR;
-  }else if(!strcmp(name,"SLL")){
+  }else if(!(x^0x736c6cL)|!(x^0x534c4cL)){
     return SLL;
-  }else if(!strcmp(name,"SRA")){
+  }else if(!(x^0x737261L)|!(x^0x535241L)){
     return SRA;
-  }else if(!strcmp(name,"SRL")){
+  }else if(!(x^0x73726cL)|!(x^0x53524cL)){
     return SRL;
-  }else if(!strcmp(name,"IN")){
+  }else if(!(x^0x696eL)|!(x^0x494eL)){
     return IN;
-  }else if(!strcmp(name,"OUT")){
+  }else if(!(x^0x6f7574L)|!(x^0x4f5554L)){
     return OUT;
-  }else if(!strcmp(name,"CLEAR")){
+  }else if(!(x^0x636c656172L)|!(x^0x434c454152L)){ /* clear */
     return 0;
-  }else if(!strcmp(name,"NOP")){
+  }else if(!(x^0x6e6f70L)|!(x^0x4e4f50L)){
     return NOP;
-  }else if(!strcmp(name,"MOVE")){
+  }else if(!(x^0x6d6f7665L)|!(x^0x4d4f5645L)){
     return MOVE;
-  }else if(!strcmp(name,"SWC1")){
+  }else if(!(x^0x73776331L)|!(x^0x53574331L)){
     return SWC1;
-  }else if(!strcmp(name,"LWC1")){
+  }else if(!(x^0x6c776331L)|!(x^0x4c574331L)){
     return LWC1;
-  }else if(!strcmp(name,"ADD.s")){
+  }else if(!(x^0x6164642e73L)|!(x^0x4144442e53L)|!(x^0x4144442e73L)){
     return ADD_S;
-  }else if(!strcmp(name,"SUB.s")){
+  }else if(!(x^0x7375622e73L)|!(x^0x5355422e53L)|!(x^0x5355422e73L)){
     return SUB_S;  
-  }else if(!strcmp(name,"MUL.s")){
+  }else if(!(x^0x6d756c2e73L)|!(x^0x4d554c2e53L)|!(x^0x4d554c2e73L)){
     return MUL_S;
-  }else if(!strcmp(name,"DIV.s")){
+  }else if(!(x^0x6469762e73L)|!(x^0x5449562e53L)|!(x^0x5449562e73L)){
     return DIV_S;
-  }else if(!strcmp(name,"C.eq.s")){
+  }else if(!(x^0x632e65712e73L)|!(x^0x432e45512e53L)|!(x^0x432e65712e73L)){
     return C_EQ_S;
-  }else if(!strcmp(name,"C.le.s")){
+  }else if(!(x^0x632e6c652e73L)|!(x^0x432e4c452e53L)|!(x^0x432e6c652e73L)){
     return C_LE_S;
-  }else if(!strcmp(name,"C.lt.s")){
+  }else if(!(x^0x632e6c742e73L)|!(x^0x432e4c542e53L)|!(x^0x432e6c742e73L)){
     return C_LT_S;
   }else{
     printf("Error: unknown instruction '%s'\n",name);
