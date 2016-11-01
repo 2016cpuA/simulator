@@ -37,7 +37,11 @@ int make_code(int out_fd,Instruct *instr,int n){
 	break;
       case TYPE_I:
 	fetch_i(NULL,op,instr[i]);
-	code=make_code_i(instr[i].opcode&MASK_OP_FUN,op[0],op[1],op[2]);
+	if(instr[i].opcode==LA)
+	  code=ADDI;
+	else
+	  code=instr[i].opcode;
+	code=make_code_i(code&MASK_OP_FUN,op[0],op[1],op[2]);
 	conv(code,buf);
 	for(j=0;j<4;j++)
 	  written+=write(out_fd,(void*)(buf+j),1);
@@ -62,6 +66,7 @@ int make_code(int out_fd,Instruct *instr,int n){
       len=strlen(labels[i].name);
       written+=write(out_fd,(void*)(&len),4);
       written+=write(out_fd,(void*)(labels[i].name),len+1);
+      written+=write(out_fd,(void*)(&j),((((len)>>2)+1)<<2)-(len+1));
       written+=write(out_fd,(void*)(&(labels[i].pc)),sizeof(int));
     }
   }

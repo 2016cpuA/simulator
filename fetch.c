@@ -11,6 +11,7 @@ int judge_type(int opcode){
   case ADDI:
   case BEQ:
   case BNE:
+  case LA:
   case LW:
   case SW:
   case ANDI:
@@ -92,10 +93,10 @@ int fetch_r(int (**instr)(Simulator*, int, int, int, int), int op[4], Instruct i
     if(op!=NULL){
       op[0]=0;op[1]=ins.operands[1];op[2]=ins.operands[0];op[3]=ins.operands[2];}
     break;
-    /* JR rs*/
+    /* JR rt*/
   case JR: if(instr!=NULL) *instr=instr_jr;
     if(op!=NULL){
-      op[0]=ins.operands[0];op[1]=0;op[2]=0;op[3]=0;}
+      op[0]=0;op[1]=ins.operands[0];op[2]=0;op[3]=0;}
     break;
     /* IN rd*/
   case IN: if(instr!=NULL) *instr=instr_in;
@@ -172,6 +173,10 @@ int fetch_i(int (**instr)(Simulator*,int,int,int),int op[4],Instruct ins){
     if(op!=NULL){
       op[0]=ins.operands[0];op[1]=ins.operands[1];op[2]=ins.operands[2];}
     break;
+  case LA: if(instr!=NULL) *instr=instr_addi;
+    if(op!=NULL){
+      op[0]=0;op[1]=ins.operands[0];op[2]=ins.operands[1];}
+    break;
   case LW: if(instr!=NULL) *instr=instr_lw;
     if(op!=NULL){
       op[0]=ins.operands[2];op[1]=ins.operands[0];op[2]=ins.operands[1];}
@@ -212,9 +217,8 @@ int fetch_j(int (**instr)(Simulator*,int),int op[4],Instruct ins){
 
 int code_fetch(int code, int *opcode, int op[4]) {
   int type;
-
-  if (Fetch_opcode(code) == 0)
-    *opcode = MASK_OP_FUN&code;
+  if(Fetch_opcode(code)==0||Fetch_opcode(code)==0x11)
+    *opcode=MASK_OP_FUN&code;
   else
     *opcode = Fetch_opcode(code)<<26;
 

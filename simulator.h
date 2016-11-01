@@ -19,14 +19,17 @@ typedef struct instruct {
 
 typedef struct instr_list {
   int no;
-  Instruct *instr;  
+  Instruct instr;  
   struct instr_list *next;
+  struct instr_list *back;
 } Instr_list;
+
 
 /*ラベル構造体の定義*/
 typedef struct label{
   char name[100];
   int pc;
+  int type;
 } Label;
 
 Instruct instruct_get(Instr_list l);

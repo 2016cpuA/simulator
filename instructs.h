@@ -29,8 +29,6 @@
 #define SRL 2
 #define IN 0xEC000000
 #define OUT 0xF0000000
-#define NOP 0xFC00003F
-#define MOVE 0xFE000000
 #define SWC1 0xE4000000
 #define LWC1 0xC4000000
 #define ADD_S 0x44000000
@@ -41,6 +39,27 @@
 #define C_LE_S 0x4400003D
 #define C_LT_S 0x4400003E 
 #define FMT_S 0
+/*mnemonics*/
+/* 変換後の命令数を取り出すためのマスク */
+#define DCP_MNEMONIC 0x00000F00
+/*これはニーモニックか?*/
+#define Is_mnemonic(opcode)  ((opcode)&0x00000F00)
+/*このニーモニックの長さは?*/
+#define Len_mnemonic(opcode) ((((opcode)&0x00000F00)>>8)&15)
+/*nop 
+  sll %r0,%r0,%r0に変換される*/
+#define NOP 0x00000100
+/*move rt,rs
+  addi rt,rs,0に変換される*/
+#define MOVE 0xFE000100
+/*la rt,label
+  addi rt,%r0,label に変換される*/
+#define LA 0xFC000101
+/*jral rt 'pc (pcはアセンブラで取得)
+->addi %r31,%r0,pc+2
+  jr rt
+  に変換される*/
+#define JALR 0xFC000202
 
 /*アセンブラ指令,デバッグ用命令 バイナリファイルには含めない命令*/
 #define MASK_ASSEM_INSTR 0x02000000
@@ -52,7 +71,7 @@
 #define _ALIGN 0x02000300
 /* .word n 整数nを表す1wordのデータをメモリ上に配置 */ 
 #define _WORD 0x02000400
-/* .globl label  labelをリンカに登録する 開始時のエントリポイントの指定*/
+/* .globl label  labelをリンカに登録する 開始時のエントリポイントの指定に必要*/
 #define _GLOBL 0x02000500
 /* .break  この命令の位置にブレークポイントを設定  '!' でも可?*/
 #define _BREAK 0x03000000

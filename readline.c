@@ -40,11 +40,18 @@ int offset=0;
 /*リンカ*/
 Label *linker;
 int n_linker;
+
+#define SECTION_TEXT 1
+#define SECTION_DATA 0
+
 /*Utilities*/
-int get_pc(Label *labels,char *name_label){
+
+int get_pc(Label *labels,char *name_label,int *out_type){
   int i;
   for(i=0;i<n_label;i++){
     if(!strcmp(labels[i].name,name_label)){
+      if(out_type!=NULL)
+	*out_type=labels[i].type;
       return labels[i].pc;
     }
   }
@@ -66,7 +73,7 @@ int list_to_align(Instruct *instr_a,Instr_list *instr_l,int n){
   int i;
   Instr_list *now=instr_l;
   for(i=0;i<n;i++){
-    instr_a[i]=*(now->instr);
+    instr_a[i]=now->instr;
     if(i!=n-1)
       now=now->next;
   }
@@ -85,9 +92,14 @@ void print_align(Instruct *instr_a,int n,FILE* out_file){
 		
 void print_labels(Label *labels,int n_label,FILE* out_file){
   int i;
-  fprintf(out_file,"label\tpc\n");
+  fprintf(out_file,"label\tpc\ttype\n");
   for(i=0;i<n_label;i++){
-    fprintf(out_file,"%s\t%d\n",labels[i].name,labels[i].pc);
+    fprintf(out_file,"%s\t%d\t",labels[i].name,labels[i].pc);
+    if(labels[i].type==SECTION_DATA)
+      fprintf(out_file,"SYMBOL\n");
+    else
+      fprintf(out_file,"LABEL\n");
+
   }
   fprintf(out_file,"\n");
 }
@@ -131,18 +143,147 @@ int search_delim(char* buf,int bufsize){
   }
   return -1;
 }
+/*ニーモニックの変換*/
+int convert_mnemonic(Instr_list *instr_l){
+  Instruct target,ins;
+  int opcode,op[4],dpc=1,i;
+  target=instr_l->instr;
+  opcode=target.opcode;
+  for(i=0;i<4;i++)
+    op[i]=target.operands[i];
+  if(Is_mnemonic(target.opcode)){
+    list_pop(instr_l);
+    switch(opcode){
+    case NOP:
+      dpc=1;
+      ins.opcode=SLL;
+      ins.operands[0]=0;
+      ins.operands[1]=0;
+      ins.operands[2]=0;
+      ins.operands[3]=0;
+      list_push(instr_l,ins);
+      break;
+    case MOVE:
+      dpc=1;
+      ins.opcode=ADDI;
+      ins.operands[0]=op[0];
+      ins.operands[1]=op[1];
+      ins.operands[2]=0;
+      ins.operands[3]=0;
+      list_push(instr_l,ins);
+      break;
+    case LA:
+      dpc=1;
+      ins.opcode=ADDI;
+      ins.operands[0]=op[0];
+      ins.operands[1]=0;
+      ins.operands[2]=op[1];
+      ins.operands[3]=0;
+      list_push(instr_l,ins);
+      break;
+    case JALR:
+      dpc=2;
+      ins.opcode=JR;
+      ins.operands[0]=op[0];
+      ins.operands[1]=0;
+      ins.operands[2]=0;
+      ins.operands[3]=0;
+      list_push(instr_l,ins);
+      ins.opcode=ADDI;
+      ins.operands[0]=31;
+      ins.operands[1]=0;
+      ins.operands[2]=op[1]+2;
+      ins.operands[3]=0;
+      list_push(instr_l,ins);
+      break;
+    }
+  }
+  return dpc;
+}
+/*.wordの変換*/
+int convert_data(Instr_list *prepare,int *mem){
+  int n_instr=0,align,data_hi,data_lo;
+  Instr_list *now;
+  Instruct ins,dest;
+  now=prepare;
+  while(!list_isempty(now)){
+    dest=now->instr;
+    if(dest.opcode==_WORD){
+      data_hi=dest.operands[0];
+      align=dest.operands[1];
+      data_lo=data_hi&0xFFFF;
+      data_hi=data_hi>>16;
+      list_pop(now);
+      if(data_hi!=0){
+	ins.opcode=ORI;
+	ins.operands[0]=1;
+	ins.operands[1]=0;
+	ins.operands[2]=data_hi&0xFFFF;
+	ins.operands[3]=0;
+	list_push(now,ins);
+	now=now->next;
+	ins.opcode=SLL;
+	ins.operands[0]=1;
+	ins.operands[1]=1;
+	ins.operands[2]=16;
+	ins.operands[3]=0;
+	list_push(now,ins);
+	now=now->next;
+	n_instr+=2;
+      }
+      if(data_lo!=0){
+	ins.opcode=ORI;
+	ins.operands[0]=1;
+	if(data_hi!=0)
+	  ins.operands[1]=1;
+	else
+	  ins.operands[1]=0;	  
+	ins.operands[2]=data_lo;
+	ins.operands[3]=0;
+	list_push(now,ins);
+	now=now->next;
+	n_instr++;
+      }
+      if(data_hi!=0||data_lo!=0){
+        ins.opcode=SW;
+	ins.operands[0]=1;
+	ins.operands[1]=*mem;
+	ins.operands[2]=30;	
+	ins.operands[3]=0;
+	list_push(now,ins);
+	now=now->next;
+	n_instr++;
+	*mem+=align;
+      }
+    }else{
+      now=now->next;
+    }
+  }
+  return n_instr;
+}  
 
 /*ディレクティブのパース*/
 int which_directive(char *opcode){
-  if(!strcmp(opcode,".globl")){
+  long long int x=0;
+  int i;
+  int max = strlen(opcode);
+  if(max>8){
+    return UNKNOWN_INSTRUCT;
+  }
+  for(i=0;i<max;i++){
+    x|=opcode[i];
+    if(i!=max-1)
+      x<<=8;
+  }
+  if(!(x^0x2e676c6f626cL)|!(x^0x2e676c6f62616cL)){
     return _GLOBL;
-  }else if(!strcmp(opcode,".text")){
+  }else if(!(x^0x2e74657874L)){
     return _TEXT;
-  }else if(!strcmp(opcode,".data")){
+  }else if(!(x^0x2e64617461L)){
     return _DATA;
-  }else if(!strcmp(opcode,".word")){
+  }else if(!(x^0x2e776f7264L)){
     return _WORD;
-  }else if(!strcmp(opcode,".align")){
+  }else if(!(x^0x2e616c69676eL)){
     return _ALIGN;
   }else{
     return UNKNOWN_INSTRUCT;
@@ -150,11 +291,16 @@ int which_directive(char *opcode){
 }
 
 /*Parser本体*/
+/*ブレークポイントのフラグ*/
+int is_break=0;
+/*テキストセクションかデータセクションか*/
+int section=1;
+int data_width=4;
 /*オペランド部分のみ*/
 int get_operand(char *op,int type_op,int pc,int opcode){
   int dest_pc,pos_space;
   char buf[32];
-  int op_fun;
+  int op_fun,symbol_type;
   if(isnum(op[0])){
     if (!(type_op&&IMMIDIATE))
       printf("Warning(line %d): wrong operand type\n",d_lines); 
@@ -181,12 +327,18 @@ int get_operand(char *op,int type_op,int pc,int opcode){
     }else{
       strcpy(buf,op);
     }
-    if((dest_pc=get_pc(labels,buf))>=0){
+    if((dest_pc=get_pc(labels,buf,&symbol_type))>=0){
       op_fun=opcode&MASK_OP_FUN;
-      if((op_fun==J)||(op_fun==JAL))
+      if((op_fun==J)||(op_fun==JAL)){
 	return dest_pc+offset;
-      else
+      }else if(op_fun==(LA&MASK_OP_FUN)){
+	if(symbol_type==SECTION_TEXT)
+	  return dest_pc+offset;
+	else
+	  return dest_pc;
+      }else{
 	return dest_pc-pc;
+      }
     }else{
       printf("Error(line %d): unknown operand '%s'\n",d_lines,buf);
     }
@@ -194,24 +346,17 @@ int get_operand(char *op,int type_op,int pc,int opcode){
   return SYNTAX_ERROR;
 }
 /*行単位のパース*/
-/*ブレークポイントのフラグ*/
-int is_break=0;
-/*テキストセクションかデータセクションか*/
-int section=1;
-int data_width=4;
-#define SECTION_TEXT 1
-#define SECTION_DATA 0
 int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
   char *buf_cp=(char*)malloc(sizeof(char)*(bufsize+1));
   char *now=buf_cp;
-  Instruct *instr_read=(Instruct*)malloc(sizeof(Instruct));
+  Instruct instr_read;
   int i,rest=bufsize-1,pos_delim,err=NO_ERROR;
   char opcode[16],operands[4][32];
   Instr_list *last=instr_l;
   int directive;
   strcpy(buf_cp,buf);
   for(i=0;i<4;i++)
-    instr_read->operands[i]=0;
+    instr_read.operands[i]=0;
   /*'#' から先はコメント*/
   if((pos_delim=search('#',now,rest))>=0){
     now[pos_delim]=0;
@@ -256,12 +401,11 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
       if(directive==_GLOBL){
       }
       free(buf_cp);
-      free(instr_read);
       return EMPTY_LINE;
     }else{
-      if((instr_read->opcode=get_instr(opcode))==-1) err=UNKNOWN_INSTRUCT;
+      if((instr_read.opcode=get_instr(opcode))==-1) err=UNKNOWN_INSTRUCT;
       if(is_break){
-	(instr_read->opcode)|= _BREAK ;
+	(instr_read.opcode)|= _BREAK ;
 	is_break=0;
       }
       now+=pos_delim+1;
@@ -281,8 +425,8 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
 	}
 	strncpy(operands[i],now,pos_delim);
 	operands[i][pos_delim]=0;
-	instr_read->operands[i]=get_operand(operands[i],7,pc,instr_read->opcode);
-	if(instr_read->operands[i]==SYNTAX_ERROR){
+	instr_read.operands[i]=get_operand(operands[i],7,pc,instr_read.opcode);
+	if(instr_read.operands[i]==SYNTAX_ERROR){
 	  err=SYNTAX_ERROR;
 	}
 	i++;
@@ -300,8 +444,8 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
 	  }
 	  pos_delim=search(')',now,rest);
 	  strncpy(operands[i],now,pos_delim);
-	  instr_read->operands[i]=get_operand(operands[i],7,pc,instr_read->opcode);
-	  if(instr_read->operands[i]==SYNTAX_ERROR){
+	  instr_read.operands[i]=get_operand(operands[i],7,pc,instr_read.opcode);
+	  if(instr_read.operands[i]==SYNTAX_ERROR){
 	    err=SYNTAX_ERROR;
 	  }
 	  i++;
@@ -321,7 +465,6 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
     }
   }else{
     free(buf_cp);
-    free(instr_read);
     err=EMPTY_LINE;
   }
   return err;
@@ -344,9 +487,9 @@ int readline(int fd,Instr_list *instr_l){
   int directive;
   int mem=0,align=4;
   Instr_list *prepare = list_init();
-  Instr_list *tail_perpare=prepare;
+  Instr_list *tail_prepare=prepare;
   /*step 2*/
-  Instruct *j_ep;
+  Instruct j_ep;
   int interpret_status,ret_status=0;
   /*ここまで*/
   for(step=0;step<3;step++){
@@ -373,8 +516,9 @@ int readline(int fd,Instr_list *instr_l){
 	      strcpy(opcode,text+pos);
 	    }else{
 	      strncpy(opcode,text+pos,pos_colon);
+	      opcode[pos_colon]=0;
 	    }
-	    if(!strcmp(opcode,".globl")){
+	    if(which_directive(opcode)==_GLOBL){
 	      links++;
 	    }
 	  }
@@ -390,8 +534,10 @@ int readline(int fd,Instr_list *instr_l){
 	    }
 	    if(section==SECTION_TEXT){
 	      labels[colons].pc=l;
+	      labels[colons].type=SECTION_TEXT;
 	    }else{
 	      labels[colons].pc=mem;
+	      labels[colons].type=SECTION_DATA;
 	    }
 	    colons++;
 	  }
@@ -444,19 +590,55 @@ int readline(int fd,Instr_list *instr_l){
 	      }
 	    }else if(directive==_WORD){
 	      mem+=(align>4)?align:4;
+	      j_ep.opcode=_WORD;
+	      while(Is_Space(*now)){
+		now++;
+	      } 
+	      if(*now){
+		pos_colon=search_space(now,strlen(now));
+		if(pos_colon<0){
+		  pos_colon=strlen(now);
+		  strcpy(opcode,now);
+		}else{
+		  strncpy(opcode,now,pos_colon);
+		}
+		j_ep.operands[0]=get_operand(now,7,0,_WORD);
+	      }else{
+		j_ep.operands[0]=0;
+	      }
+	      j_ep.operands[1]=(align>4)?align:4;
+	      list_push(tail_prepare,j_ep);
+	      tail_prepare=tail_prepare->next;
+	      
 	    }else{
 	      fprintf(stderr,"Warning: unknown operand '%s'\n",opcode);
 	    }
 	  }else if(*now!=0&&*now!='#'){
 	    /*行の最後まで空白or単行コメントがあったら行数をカウントしない*/
-	    l++;
+	    /*命令があったら、その命令の'長さ'によって加算する行数を変える*/
+	    pos=search_space(now,strlen(now));
+	    if(pos<0){
+	      strcpy(opcode,now);
+	      pos=strlen(opcode);
+	    }else{
+	      strncpy(opcode,now,pos);
+	      opcode[pos]=0;
+	    }
+	    directive=get_instr(opcode);
+	    if(directive!=-1&&directive!=INSTR_END){
+	      pos=Len_mnemonic(directive);
+	      l+=(pos>0)?pos:1;
+	    }
 	  }
 	  
 	}else{
 	  /*step 2: 各行の解釈*/
 	  if((interpret_status=interpret(instr_l,text,pos_lf+1,l))<0)
 	    ret_status=-1;
-	  if(interpret_status!=1) l++; 
+	  tail_prepare=instr_l;
+	  while(!list_isempty(tail_prepare))
+	    tail_prepare=tail_prepare->next;
+	  if(interpret_status!=1) l+=convert_mnemonic(tail_prepare->back); 
 	  d_lines++;
 	}
 	/*ここまで*/
@@ -486,20 +668,43 @@ int readline(int fd,Instr_list *instr_l){
 	print_labels(labels,n_label,output_instr_file);
       }
       for(links=0;links<n_linker;links++){
-	pos=get_pc(labels,linker[links].name);
+	pos=get_pc(labels,linker[links].name,NULL);
 	linker[links].pc=pos;
 	if(pos==-1){
 	  fprintf(stderr,"Warning: unknown global label '%s'\n",linker[links].name);
 	}
       }
-      if((pos=get_pc(linker,ENTRY_POINT))<0){
+      j_ep.opcode=0;
+      j_ep.operands[0]=0;
+      j_ep.operands[1]=0;
+      j_ep.operands[2]=0;
+      j_ep.operands[3]=0;
+      list_push(instr_l,j_ep);
+      offset++;
+      mem=0;
+      offset+=convert_data(prepare,&mem);
+      if(mem!=0){
+        j_ep.opcode=ADDI;
+	j_ep.operands[0]=30;
+	j_ep.operands[1]=0;
+	j_ep.operands[2]=mem;
+	tail_prepare=prepare;
+	while(!list_isempty(tail_prepare))
+	  tail_prepare=tail_prepare->next;
+	list_push(tail_prepare,j_ep);
+	offset++;
+      }
+      list_append(instr_l,prepare);
+      if((pos=get_pc(linker,ENTRY_POINT,NULL))<0){
 	fprintf(stderr,"Warning: missing entry point; add '.globl %s' on your program, and make sure label '%s' exists.\n",ENTRY_POINT,ENTRY_POINT);
       }else{
-	j_ep=(Instruct*)malloc(sizeof(Instruct));
-	j_ep->opcode=J;
-	offset+=1;
-	j_ep->operands[0]=pos+offset;
-	list_push(instr_l,j_ep);
+	j_ep.opcode=J;
+	offset++;
+	j_ep.operands[0]=pos+offset;
+	tail_prepare=instr_l;
+	while(!list_isempty(tail_prepare))
+	  tail_prepare=tail_prepare->next;
+	list_push(tail_prepare,j_ep);
       }
       d_lines=1;
       
@@ -508,7 +713,7 @@ int readline(int fd,Instr_list *instr_l){
       if(!debug)
 	free(labels);
       if(ret_status==0){
-	ret_status=l;
+	ret_status=l+offset;
       }
       list_free(prepare);
     }
@@ -519,7 +724,7 @@ int readline(int fd,Instr_list *instr_l){
 
 Instruct *load_instruct(int fd,char* output_instr_file_name,int *size){
   Instr_list *instr_l=list_init();
-  Instruct *instr_a;
+  Instruct *instr_a=NULL;
   int l;
   /*命令列出力用のファイルのオープン*/
   output_instr_file=NULL;

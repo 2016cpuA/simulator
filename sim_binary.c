@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "simulator.h"
 #include "instructs.h"
 
-#define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++) (sim).reg[_i]=0;(sim).pc=0;} while(0);
+#define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++){ (sim).reg[_i]=0;(sim).freg[_i]=0;}(sim).pc=0;} while(0);
 #define Is_break(opcode) ((opcode)&_BREAK)
 #define Clear_break(opcode) ((opcode)&MASK_OP_FUN)
 #define Set_break(opcode) ((opcode)|_BREAK)
@@ -16,7 +17,8 @@
 extern int iter_max,debug,execute;
 extern void print_regs(Simulator sim);
 /*readline.c*/
-
+Label *labels;
+int n_label;
 void print_code(FILE *output_instr_file, int *bin, int n){
   int i,op[4];
   Instruct ins;
@@ -149,9 +151,9 @@ int step_simulation_bin(Instruct *instr, int n) {
   return 0;
 }
 int _sim_binary(int program_fd,char *output_instr_file_name){
-  int n;
+  int n,pc=0;
   int *bin;
-  register int i,tmp;
+  register int i,tmp,j;
   FILE *output_instr_file;
   /*命令のロード*/
   n=lseek(program_fd,0,SEEK_END)>>2;
@@ -168,19 +170,38 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
     bin=(int*)malloc(n*sizeof(int));
     read(program_fd,bin,n<<2);
     for(i=0;i<n;i++){
-      if(bin[i]!=0xffffffff)
+      if(bin[i]!=0xffffffff){
 	tmp=bin[i];
-      bin[i]=(Rev_bits((tmp&0xFF000000)>>24)<<24)|(Rev_bits((tmp&0xFF0000)>>16)<<16)|(Rev_bits((tmp&0xFF00)>>8)<<8)|Rev_bits(tmp&0xFF);
+	bin[i]=(Rev_bits((tmp&0xFF000000)>>24)<<24)|(Rev_bits((tmp&0xFF0000)>>16)<<16)|(Rev_bits((tmp&0xFF00)>>8)<<8)|Rev_bits(tmp&0xFF);
+      }else{
+	pc=i;
+	break;
+      }
+    }
+    if(pc==0) pc=n;
+    else{
+      i++;
+      n_label=bin[i];
+      labels=(Label*)malloc(n_label*sizeof(Label));
+      i++;
+      for(j=0;j<n_label;j++){
+	strncpy(labels[j].name,(char*)((void*)(bin+i+1)),bin[i]);
+	i+=((bin[i])>>2)+2;
+	labels[j].pc=bin[i];
+	i++;
+      }
     }
     if(output_instr_file!=NULL){
       print_code(output_instr_file,bin,n);
       fclose(output_instr_file);
     }
     if(execute&&n>=0){
-      /*if(debug) step_simulation_bin(instr,n);
+      /*if(debug) step_simulation_bin(instr,pc);
 	else*/
-      simulation_bin(bin,n);
+      simulation_bin(bin,pc);
     }    
+    if(labels!=NULL)
+      free(labels);
     return 0;
   }else{
     fprintf(stderr,"Error: failed to load; could not open binary file\n");
