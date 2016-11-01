@@ -40,6 +40,10 @@ int offset=0;
 /*リンカ*/
 Label *linker;
 int n_linker;
+
+#define SECTION_TEXT 1
+#define SECTION_DATA 0
+
 /*Utilities*/
 
 int get_pc(Label *labels,char *name_label,int *out_type){
@@ -88,9 +92,14 @@ void print_align(Instruct *instr_a,int n,FILE* out_file){
 		
 void print_labels(Label *labels,int n_label,FILE* out_file){
   int i;
-  fprintf(out_file,"label\tpc\n");
+  fprintf(out_file,"label\tpc\ttype\n");
   for(i=0;i<n_label;i++){
-    fprintf(out_file,"%s\t%d\n",labels[i].name,labels[i].pc);
+    fprintf(out_file,"%s\t%d\t",labels[i].name,labels[i].pc);
+    if(labels[i].type==SECTION_DATA)
+      fprintf(out_file,"SYMBOL\n");
+    else
+      fprintf(out_file,"LABEL\n");
+
   }
   fprintf(out_file,"\n");
 }
@@ -287,8 +296,6 @@ int is_break=0;
 /*テキストセクションかデータセクションか*/
 int section=1;
 int data_width=4;
-#define SECTION_TEXT 1
-#define SECTION_DATA 0
 /*オペランド部分のみ*/
 int get_operand(char *op,int type_op,int pc,int opcode){
   int dest_pc,pos_space;
@@ -322,15 +329,16 @@ int get_operand(char *op,int type_op,int pc,int opcode){
     }
     if((dest_pc=get_pc(labels,buf,&symbol_type))>=0){
       op_fun=opcode&MASK_OP_FUN;
-      if((op_fun==J)||(op_fun==JAL))
+      if((op_fun==J)||(op_fun==JAL)){
 	return dest_pc+offset;
-      else if(op_fun==(LA&MASK_OP_FUN))
-	if(symbol_type==SECTION_DATA)
-	  return dest_pc;
-	else
+      }else if(op_fun==(LA&MASK_OP_FUN)){
+	if(symbol_type==SECTION_TEXT)
 	  return dest_pc+offset;
-      else
+	else
+	  return dest_pc;
+      }else{
 	return dest_pc-pc;
+      }
     }else{
       printf("Error(line %d): unknown operand '%s'\n",d_lines,buf);
     }
@@ -526,10 +534,11 @@ int readline(int fd,Instr_list *instr_l){
 	    }
 	    if(section==SECTION_TEXT){
 	      labels[colons].pc=l;
+	      labels[colons].type=SECTION_TEXT;
 	    }else{
 	      labels[colons].pc=mem;
+	      labels[colons].type=SECTION_DATA;
 	    }
-	    labels[colons].type=section;
 	    colons++;
 	  }
 	  if(pos_colon>=0){
