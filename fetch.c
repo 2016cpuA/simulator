@@ -44,11 +44,11 @@ int judge_type(int opcode){
   return UNKNOWN;
 }
     
-int fetch_r(int (**instr)(Simulator*,int,int,int,int),int op[4],Instruct ins){
-  switch(ins.opcode&MASK_OP_FUN){
+int fetch_r(int (**instr)(Simulator*, int, int, int, int), int op[4], Instruct ins) {
+  switch (ins.opcode&MASK_OP_FUN) {
     /* <op> rd,rs,rt  ... rd <- rs <op> rt*/
   case ADD: if(instr!=NULL) *instr=instr_add;
-    if(op!=NULL){
+    if (op!=NULL){
       op[0]=ins.operands[1];op[1]=ins.operands[2];op[2]=ins.operands[0];op[3]=0;}
     break;
   case SUB: if(instr!=NULL) *instr=instr_sub;
@@ -210,24 +210,27 @@ int fetch_j(int (**instr)(Simulator*,int),int op[4],Instruct ins){
   return 0;
 }
 
-int code_fetch(int code,int *opcode,int op[4]){
+int code_fetch(int code, int *opcode, int op[4]) {
   int type;
-  if(Fetch_opcode(code)==0)
-    *opcode=MASK_OP_FUN&code;
+
+  if (Fetch_opcode(code) == 0)
+    *opcode = MASK_OP_FUN&code;
   else
-    *opcode=Fetch_opcode(code)<<26;
-  type=judge_type(*opcode);
-  if(type==TYPE_R){
-    op[0]=Fetch_rs(code);
-    op[1]=Fetch_rt(code);
-    op[2]=Fetch_rd(code);
-    op[3]=Fetch_sa(code);
-  }else if(type==TYPE_I){
-    op[0]=Fetch_rs(code);
-    op[1]=Fetch_rt(code);
-    op[2]=Fetch_immediate(code);
-  }else{
-    op[0]=Fetch_instr_index(code);
+    *opcode = Fetch_opcode(code)<<26;
+
+  type = judge_type(*opcode);
+
+  if (type == TYPE_R) {
+    op[0] = Fetch_rs(code);
+    op[1] = Fetch_rt(code);
+    op[2] = Fetch_rd(code);
+    op[3] = Fetch_sa(code);
+  } else if (type == TYPE_I) {
+    op[0] = Fetch_rs(code);
+    op[1] = Fetch_rt(code);
+    op[2] = Fetch_immediate(code);
+  } else {
+    op[0] = Fetch_instr_index(code);
   }
   return 0;
 }
