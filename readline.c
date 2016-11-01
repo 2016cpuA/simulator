@@ -144,11 +144,16 @@ int search_delim(char* buf,int bufsize){
   return -1;
 }
 /*ニーモニックの変換*/
-int convert_mnemonic(Instr_list *instr_l){
+int convert_mnemonic(Instr_list *instr_l,int pc){
   Instruct target,ins;
   int opcode,op[4],dpc=1,i;
+  int isbreak;
   target=instr_l->instr;
   opcode=target.opcode;
+  if(opcode&_BREAK){
+    isbreak=_BREAK;
+    opcode=opcode&(~_BREAK);
+  }
   for(i=0;i<4;i++)
     op[i]=target.operands[i];
   if(Is_mnemonic(target.opcode)){
@@ -156,7 +161,7 @@ int convert_mnemonic(Instr_list *instr_l){
     switch(opcode){
     case NOP:
       dpc=1;
-      ins.opcode=SLL;
+      ins.opcode=SLL|isbreak;
       ins.operands[0]=0;
       ins.operands[1]=0;
       ins.operands[2]=0;
@@ -165,7 +170,7 @@ int convert_mnemonic(Instr_list *instr_l){
       break;
     case MOVE:
       dpc=1;
-      ins.opcode=ADDI;
+      ins.opcode=ADDI|isbreak;
       ins.operands[0]=op[0];
       ins.operands[1]=op[1];
       ins.operands[2]=0;
@@ -174,7 +179,7 @@ int convert_mnemonic(Instr_list *instr_l){
       break;
     case LA:
       dpc=1;
-      ins.opcode=ADDI;
+      ins.opcode=ADDI|isbreak;
       ins.operands[0]=op[0];
       ins.operands[1]=0;
       ins.operands[2]=op[1];
@@ -189,10 +194,10 @@ int convert_mnemonic(Instr_list *instr_l){
       ins.operands[2]=0;
       ins.operands[3]=0;
       list_push(instr_l,ins);
-      ins.opcode=ADDI;
+      ins.opcode=ADDI|isbreak;
       ins.operands[0]=31;
       ins.operands[1]=0;
-      ins.operands[2]=op[1]+2;
+      ins.operands[2]=pc+offset+2;
       ins.operands[3]=0;
       list_push(instr_l,ins);
       break;
@@ -638,7 +643,7 @@ int readline(int fd,Instr_list *instr_l){
 	  tail_prepare=instr_l;
 	  while(!list_isempty(tail_prepare))
 	    tail_prepare=tail_prepare->next;
-	  if(interpret_status!=1) l+=convert_mnemonic(tail_prepare->back); 
+	  if(interpret_status!=1) l+=convert_mnemonic(tail_prepare->back,l); 
 	  d_lines++;
 	}
 	/*ここまで*/
