@@ -30,6 +30,7 @@ struct instr_list{
 typedef struct label{
   char name[100];
   int pc;
+  int type;
 } Label;
 
 typedef struct instr_list Instr_list;

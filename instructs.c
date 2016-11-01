@@ -42,6 +42,8 @@ int get_instr(char *name){
     return JAL;
   }else if(!(x^0x6a72L)|!(x^0x4a52L)){
     return JR;
+  }else if(!(x^0x6a616c72L)|!(x^0x4a414c52L)){
+    return JALR;
   }else if(!(x^0x6c77L)|!(x^0x4c57L)){
     return LW;
   }else if(!(x^0x6c61L)|!(x^0x4c41L)){
