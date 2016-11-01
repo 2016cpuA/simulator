@@ -4,27 +4,26 @@
 #define MEMSIZE 65536
 #define REGS 32
 #define FREGS 32
-struct simulator{
+
+typedef struct simulator {
   char mem[MEMSIZE];
   int reg[REGS];
   float freg[FREGS];
   int pc;
-};
+} Simulator;
 
-struct instruct{
+typedef struct instruct {
   int opcode;
   int operands[4];
-};
+} Instruct;
 
-typedef struct simulator Simulator;
-typedef struct instruct Instruct;
-
-struct instr_list{
+typedef struct instr_list {
   int no;
   Instruct instr;  
   struct instr_list *next;
   struct instr_list *back;
-};
+} Instr_list;
+
 
 /*ラベル構造体の定義*/
 typedef struct label{
@@ -32,8 +31,6 @@ typedef struct label{
   int pc;
   int type;
 } Label;
-
-typedef struct instr_list Instr_list;
 
 Instruct instruct_get(Instr_list l);
 Instr_list instruct_load(int fd);
