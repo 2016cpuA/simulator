@@ -41,8 +41,8 @@ int judge_type(int opcode){
   case IN:
   case OUT: return TYPE_R;break;
   }
-  fprintf(stderr,"Warning(simulator): unknown instruct\n");
-  return UNKNOWN;
+  /*fprintf(stderr,"Warning(simulator): unknown instruct\n");*/
+  return TYPE_R;
 }
     
 int fetch_r(int (**instr)(Simulator*, int, int, int, int), int op[4], Instruct ins) {
@@ -142,7 +142,10 @@ int fetch_r(int (**instr)(Simulator*, int, int, int, int), int op[4], Instruct i
       op[0]=FMT_S;op[1]=ins.operands[2];op[2]=ins.operands[1];op[3]=ins.operands[0];}
     break;
   default:
-    fprintf(stderr,"Warning: Unknown opecode(%x)\n",ins.opcode&MASK_OP_FUN);
+    fprintf(stderr,"Warning: Unknown opecode(%x)\n",ins.opcode);
+    if(instr!=NULL) *instr=instr_nop;
+    if(op!=NULL){
+      op[0]=0;op[1]=0;op[2]=0;op[3]=0;}
   }
   return 0;
 }
