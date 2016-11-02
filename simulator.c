@@ -104,7 +104,7 @@ int step_simulation(Instruct *instr, int n) {
 
   /*simulator実行部分*/
   fprintf(stderr,"Execution started.\n");
-  while (sim.pc < n) {
+  while (sim.pc < n && clocks<iter_max){
     /*FETCH*/
     now=instr[sim.pc];
     stop = Is_break(now.opcode);
