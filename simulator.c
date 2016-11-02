@@ -35,7 +35,7 @@ void print_regs(Simulator sim) {
   fprintf(stderr, "   %11d %11d %11d %11d %11d %11d %11d %11d\n--------------------------------------------------------------------------------------------------\n",0,1,2,3,4,5,6,7);
   for (i = 0; i < FREGS; i++) {
     if (i % 8 == 0) fprintf(stderr, "%2d:", i);
-    fprintf(stderr, "%11f ", sim.freg[i]);
+    fprintf(stderr, "%11.4e ", sim.freg[i]);
     if(i % 8 == 7) fprintf(stderr, "\n");
   }
 
