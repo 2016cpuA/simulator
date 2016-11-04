@@ -147,7 +147,7 @@ int search_delim(char* buf,int bufsize){
 int convert_mnemonic(Instr_list *instr_l,int pc){
   Instruct target,ins;
   int opcode,op[4],dpc=1,i;
-  int isbreak;
+  int isbreak=0;
   target=instr_l->instr;
   opcode=target.opcode;
   if(opcode&_BREAK){
