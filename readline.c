@@ -669,6 +669,7 @@ int readline(int fd,Instr_list *instr_l){
       lseek(fd,0,SEEK_SET);
       strcpy(labels[colons].name,"SYS_EXIT");
       labels[colons].pc=l;
+      labels[colons].type=SECTION_TEXT;
       if(output_instr_file!=NULL){
 	print_labels(labels,n_label,output_instr_file);
       }
@@ -679,13 +680,6 @@ int readline(int fd,Instr_list *instr_l){
 	  fprintf(stderr,"Warning: unknown global label '%s'\n",linker[links].name);
 	}
       }
-      j_ep.opcode=0;
-      j_ep.operands[0]=0;
-      j_ep.operands[1]=0;
-      j_ep.operands[2]=0;
-      j_ep.operands[3]=0;
-      list_push(instr_l,j_ep);
-      offset++;
       mem=0;
       offset+=convert_data(prepare,&mem);
       if(mem!=0){

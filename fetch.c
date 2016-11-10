@@ -109,7 +109,7 @@ int fetch_r(int (**instr)(Simulator*, int, int, int, int), int op[4], Instruct i
       op[0]=ins.operands[0];op[1]=0;op[2]=0;op[3]=0;}
     break;
     /*NOP*/
-  case NOP: if(instr!=NULL) *instr=instr_out;
+  case NOP: if(instr!=NULL) *instr=instr_nop;
     if(op!=NULL){
       op[0]=0;op[1]=0;op[2]=0;op[3]=0;}
     break;

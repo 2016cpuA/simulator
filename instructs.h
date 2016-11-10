@@ -8,9 +8,9 @@
 /*上位6bitをopcode,下位6bitをfunction(形式R以外は0),それ以外は0にする*/
 #define ADD 0x20
 #define ADDI 0x20000000
-#define SUB 0x1A
+#define SUB 0x22
 #define MULT 0x18
-#define DIV 0x22
+#define DIV 0x1A
 #define SLT 0x2A
 #define BEQ 0x10000000
 #define BNE 0x14000000

@@ -293,19 +293,34 @@ int instr_bne(Simulator *sim,int rs,int rt,int offset) {
 int instr_lw(Simulator *sim,int rbase,int rt,int offset) {
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
-  sim->reg[rt] = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
-  Inc(sim->pc);
-  return 0;
+  if(addr<MEMSIZE){
+    sim->reg[rt] = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
+    Inc(sim->pc);
+    return 0;
+  }else{
+    fprintf(stderr,"Error(lw): invalid address %d\n",addr);
+    return -1;
+  }
 }
 
 int instr_sw(Simulator *sim,int rbase,int rt,int offset) {
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
-  memory[addr]=(char)((sim->reg[rt])&0xff);
-  memory[addr+1]=(char)(((sim->reg[rt])&0xff00)>>8);
-  memory[addr+2]=(char)(((sim->reg[rt])&0xff0000)>>16);
-  memory[addr+3]=(char)(((sim->reg[rt])&0xff000000)>>24);
-  Inc(sim->pc);
+  /*for debug*/
+  /*static int max_addr = 0;
+     max_addr=(max_addr>sim->reg[rbase])?max_addr:sim->reg[rbase];
+     sim->reg[16]=max_addr;*/
+  /**/
+  if(addr<MEMSIZE){
+    memory[addr]=(char)((sim->reg[rt])&0xff);
+    memory[addr+1]=(char)(((sim->reg[rt])&0xff00)>>8);
+    memory[addr+2]=(char)(((sim->reg[rt])&0xff0000)>>16);
+    memory[addr+3]=(char)(((sim->reg[rt])&0xff000000)>>24);
+    Inc(sim->pc);
+  }else{
+    fprintf(stderr,"Error(sw): invalid address %d\n",addr);
+    return -1;
+  }
   return 0;
 }
 

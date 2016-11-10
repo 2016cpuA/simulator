@@ -14,13 +14,14 @@
 #define Set_break(opcode) ((opcode)|_BREAK)
 /*オプションから受け取った変数*/
 /*simulation.c*/
-extern int iter_max,debug,execute;
+extern int debug,execute;
+extern long long int iter_max;
 extern void print_regs(Simulator sim);
 /*readline.c*/
 Label *labels;
 int n_label;
 void print_code(FILE *output_instr_file, int *bin, int n){
-  int i,op[4];
+  int i,op[4]={0,0,0,0};
   Instruct ins;
   fprintf(output_instr_file,"pc\tcode    \tinstr\top1\top2\top3\top4\n");
   for(i=0;i<n;i++){
@@ -34,8 +35,9 @@ int simulation_bin(int *bin, int n){
   Simulator sim;
   int now;
   Instruct ins;
-  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
-  int instr_type,opcode,clocks=0;
+  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4]={0,0,0,0};
+  int instr_type,opcode;
+  long long int clocks=0;
   Sim_Init(sim);
   /*simulator実行部分*/
   fprintf(stderr,"Execution started.\n");
@@ -79,7 +81,7 @@ int simulation_bin(int *bin, int n){
     fprintf(stderr,"Execution finished.\n");
   }
   print_regs(sim);
-  fprintf(stderr,"clocks: %d\n",clocks);
+  fprintf(stderr,"clocks: %lld\n",clocks);
   free(bin);
   return 0;
 }    
@@ -89,8 +91,9 @@ enum Flag {STEP,CONTINUE};
 int step_simulation_bin(Instruct *instr, int n) {
   Simulator sim;
   Instruct now;
-  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
-  int instr_type,clocks=0,stop=0;
+  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4]={0,0,0,0};
+  int instr_type,stop=0;
+  long long int clocks=0;
   int ch;
   enum Flag flag=CONTINUE;
   Sim_Init(sim);
@@ -102,7 +105,7 @@ int step_simulation_bin(Instruct *instr, int n) {
     if(stop||flag==STEP){
       fprintf(stderr,"STEP No.%d.\n", sim.pc);
       print_regs(sim);
-      fprintf(stderr,"clocks: %d\n",clocks);
+      fprintf(stderr,"clocks: %lld\n",clocks);
       fprintf(stderr,"next instruct: ");
       print_instr(instr[sim.pc],stderr);
       fprintf(stderr,"\n");
@@ -146,7 +149,7 @@ int step_simulation_bin(Instruct *instr, int n) {
   
   fprintf(stderr,"Execution finished.\n");
   print_regs(sim);
-  fprintf(stderr,"clocks: %d\n",clocks);
+  fprintf(stderr,"clocks: %lld\n",clocks);
   free(instr);
   return 0;
 }
@@ -172,7 +175,7 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
     for(i=0;i<n;i++){
       if(bin[i]!=0xffffffff){
 	tmp=bin[i];
-	bin[i]=(Rev_bits((tmp&0xFF000000)>>24)<<24)|(Rev_bits((tmp&0xFF0000)>>16)<<16)|(Rev_bits((tmp&0xFF00)>>8)<<8)|Rev_bits(tmp&0xFF);
+	bin[i]=(((tmp&0xFF000000)>>24))|(((tmp&0xFF0000)>>16)<<8)|(((tmp&0xFF00)>>8)<<16)|((tmp&0xFF)<<24);
       }else{
 	pc=i;
 	break;
