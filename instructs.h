@@ -92,6 +92,12 @@
 /*入力,出力:%f0*/
 #define LIB_SQRT  0x2000000-23
 /*入力,出力:%f0*/
+#define LIB_FABS  0x2000000-24
+/*入力,出力:%f0*/
+#define LIB_CR_ARRAY 0x2000000-33
+/*入力:%r1,%r2,出力:%r1*/
+#define LIB_CR_ARRAY_F 0x2000000-34
+/*入力:%r1,%f0,出力:%r1*/
 #define DBG_PSTR 0x2000000-65
 /*%r1に格納されたポインタからNULまで文字列を出力。*/
 

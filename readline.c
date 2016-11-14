@@ -296,7 +296,7 @@ int which_directive(char *opcode){
 }
 
 /*特殊関数へのラベル(実態はシンボル)*/
-#define NUM_SIM_SYMBOLS 15
+#define NUM_SIM_SYMBOLS 18
 void add_symbols(Label *labels,int max,int *i){  
   strcpy(labels[*i].name,"min_caml_read_byte");
   labels[*i].pc=LIB_RBYTE;
@@ -310,7 +310,7 @@ void add_symbols(Label *labels,int max,int *i){
   labels[*i].pc=LIB_RFLOAT;
   labels[*i].type=0;
   *i=*i+1;
-  strcpy(labels[*i].name,"min_caml_print_byte");
+  strcpy(labels[*i].name,"min_caml_print_char");
   labels[*i].pc=LIB_WBYTE;
   labels[*i].type=0;
   *i=*i+1;
@@ -322,7 +322,7 @@ void add_symbols(Label *labels,int max,int *i){
   labels[*i].pc=LIB_WFLOAT;
   labels[*i].type=0;
   *i=*i+1;
-  strcpy(labels[*i].name,"min_caml_print_new_line");
+  strcpy(labels[*i].name,"min_caml_print_newline");
   labels[*i].pc=LIB_NLINE;
   labels[*i].type=0;
   *i=*i+1;
@@ -346,12 +346,24 @@ void add_symbols(Label *labels,int max,int *i){
   labels[*i].pc=LIB_FTOI;
   labels[*i].type=0;
   *i=*i+1;
-  strcpy(labels[*i].name,"min_caml_ffloor");
+  strcpy(labels[*i].name,"min_caml_floor");
   labels[*i].pc=LIB_FLOOR;
   labels[*i].type=0;
   *i=*i+1;
   strcpy(labels[*i].name,"min_caml_sqrt");
   labels[*i].pc=LIB_SQRT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fabs");
+  labels[*i].pc=LIB_FABS;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_create_array");
+  labels[*i].pc=LIB_CR_ARRAY;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_create_float_array");
+  labels[*i].pc=LIB_CR_ARRAY_F;
   labels[*i].type=0;
   *i=*i+1;
   strcpy(labels[*i].name,"DBG_PRINT_STRING");

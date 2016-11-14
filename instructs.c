@@ -154,28 +154,32 @@ int make_code_j(int opcode,int instr_index) {
   return (opcode&0xfc000000)|(instr_index&0x03ffffff);
 }
 
+#define _HP 30
+
 void sim_libs(Simulator *sim,int label){
+  int i,int_init,max,hp,mem;
+  float fl_init;
   switch(label){
   case LIB_WBYTE: 
-    fprintf(input_file,"%c",(char)(sim->reg[1]&0xff));
+    putc((sim->reg[1]&0xff),output_file);
     break;
   case LIB_WINT: 
-    fprintf(input_file,"%d",(sim->reg[1]));
+    fprintf(output_file,"%d",(sim->reg[1]));
     break;
   case LIB_WFLOAT: 
-    fprintf(input_file,"%f",(sim->freg[0]));
+    fprintf(output_file,"%f",(sim->freg[0]));
     break;
   case LIB_NLINE: 
     fprintf(output_file,"\n");
     break;
   case LIB_RBYTE: 
-    sim->reg[1]=fgetc(output_file);
+    sim->reg[1]=fgetc(input_file);
     break;
   case LIB_RINT: 
-    fscanf(output_file,"%d",&(sim->reg[1]));
+    fscanf(input_file,"%d",&(sim->reg[1]));
     break;
   case LIB_RFLOAT: 
-    fscanf(output_file,"%f",&(sim->freg[0]));
+    fscanf(input_file,"%f",&(sim->freg[0]));
     break;
   case LIB_SIN: 
     sim->freg[0]=sinf(sim->freg[0]);
@@ -197,6 +201,32 @@ void sim_libs(Simulator *sim,int label){
     break;
   case LIB_SQRT:
     sim->freg[0]=sqrtf(sim->freg[0]);
+    break;
+  case LIB_FABS:
+    sim->freg[0]=fabsf(sim->freg[0]);
+    break;
+  case LIB_CR_ARRAY:
+    hp=sim->reg[_HP];
+    max=sim->reg[1];
+    int_init=sim->reg[2];
+    mem=sim->mem[hp];
+    for(i=0;i<max;i++){
+      *(int*)&(sim->mem[i*4+mem])=int_init;
+    }
+    sim->reg[_HP]+=(sim->reg[1])*4;
+    sim->reg[1]=hp;
+    break;
+  case LIB_CR_ARRAY_F:
+    hp=sim->reg[_HP];
+    max=sim->reg[1];
+    fl_init=sim->freg[0];
+    mem=sim->mem[hp];
+    for(i=0;i<sim->reg[1];i++){
+      *(float*)&(sim->mem[i+mem])=fl_init;
+      mem=mem+4;  
+    }
+    sim->reg[1]=hp;
+    sim->reg[_HP]+=(sim->reg[1])*4; 
     break;
   case DBG_PSTR:
     fprintf(stderr,"%s\n",(sim->mem)+(sim->reg[1]));
