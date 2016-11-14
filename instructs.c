@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "instructs.h"
 
 #define Print(text) fprintf(out_file,text)
@@ -20,16 +21,12 @@ int get_instr(char *name){
     if(i!=max-1)
       x<<=8;
   }
-  if(!(x^0x616464L)|!(x^0x414444L)){
-    return ADD;
-  }else if(!(x^0x61646469L)|!(x^0x41444449L)){
+  if(!(x^0x61646469L)|!(x^0x41444449L)){
     return ADDI;
+  }else if(!(x^0x616464L)|!(x^0x414444L)){
+    return ADD;
   }else if(!(x^0x737562L)|!(x^0x535542L)){
     return SUB;
-  }else if(!(x^0x6d756c74L)|!(x^0x4d554c54L)){
-    return MULT;
-  }else if(!(x^0x646976L)|!(x^0x444956L)){
-    return DIV;
   }else if(!(x^0x736c74L)|!(x^0x534c54L)){
     return SLT;
   }else if(!(x^0x626571L)|!(x^0x424551L)){
@@ -70,12 +67,6 @@ int get_instr(char *name){
     return IN;
   }else if(!(x^0x6f7574L)|!(x^0x4f5554L)){
     return OUT;
-  }else if(!(x^0x636c656172L)|!(x^0x434c454152L)){ /* clear */
-    return 0;
-  }else if(!(x^0x6e6f70L)|!(x^0x4e4f50L)){
-    return NOP;
-  }else if(!(x^0x6d6f7665L)|!(x^0x4d4f5645L)){
-    return MOVE;
   }else if(!(x^0x73776331L)|!(x^0x53574331L)){
     return SWC1;
   }else if(!(x^0x6c776331L)|!(x^0x4c574331L)){
@@ -94,6 +85,16 @@ int get_instr(char *name){
     return C_LE_S;
   }else if(!(x^0x632e6c742e73L)|!(x^0x432e4c542e53L)|!(x^0x432e6c742e73L)){
     return C_LT_S;
+  }else if(!(x^0x6d756c74L)|!(x^0x4d554c54L)){
+    return MULT;
+  }else if(!(x^0x646976L)|!(x^0x444956L)){
+    return DIV;
+  }else if(!(x^0x636c656172L)|!(x^0x434c454152L)){ /* clear */
+    return 0;
+  }else if(!(x^0x6e6f70L)|!(x^0x4e4f50L)){
+    return NOP;
+  }else if(!(x^0x6d6f7665L)|!(x^0x4d4f5645L)){
+    return MOVE;
   }else{
     printf("Error: unknown instruction '%s'\n",name);
     return UNKNOWN;
@@ -151,6 +152,56 @@ int make_code_i(int opcode,int rs,int rt,int imm) {
 
 int make_code_j(int opcode,int instr_index) {
   return (opcode&0xfc000000)|(instr_index&0x03ffffff);
+}
+
+void sim_libs(Simulator *sim,int label){
+  switch(label){
+  case LIB_WBYTE: 
+    fprintf(input_file,"%c",(char)(sim->reg[1]&0xff));
+    break;
+  case LIB_WINT: 
+    fprintf(input_file,"%d",(sim->reg[1]));
+    break;
+  case LIB_WFLOAT: 
+    fprintf(input_file,"%f",(sim->freg[0]));
+    break;
+  case LIB_NLINE: 
+    fprintf(output_file,"\n");
+    break;
+  case LIB_RBYTE: 
+    sim->reg[1]=fgetc(output_file);
+    break;
+  case LIB_RINT: 
+    fscanf(output_file,"%d",&(sim->reg[1]));
+    break;
+  case LIB_RFLOAT: 
+    fscanf(output_file,"%f",&(sim->freg[0]));
+    break;
+  case LIB_SIN: 
+    sim->freg[0]=sinf(sim->freg[0]);
+    break;
+  case LIB_COS: 
+    sim->freg[0]=cosf(sim->freg[0]);
+    break;
+  case LIB_ATAN: 
+    sim->freg[0]=atanf(sim->freg[0]);
+    break;
+  case LIB_ITOF:
+    sim->freg[0]=(float)(sim->reg[1]);
+    break;
+  case LIB_FTOI:
+    sim->reg[1]=(int)(sim->freg[0]);
+    break;
+  case LIB_FLOOR:
+    sim->freg[0]=floorf(sim->freg[0]);
+    break;
+  case LIB_SQRT:
+    sim->freg[0]=sqrtf(sim->freg[0]);
+    break;
+  case DBG_PSTR:
+    fprintf(stderr,"%s\n",(sim->mem)+(sim->reg[1]));
+    break;
+  }
 }
 
 int instr_nop(Simulator *sim,int rs,int rt,int rd,int sa) {
@@ -239,12 +290,16 @@ int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa) {
 }
 
 int instr_in(Simulator *sim,int rs,int rt,int rd,int sa){
+  char buf[4];
   (sim->pc)++;
-  fread(&sim->reg[rd], 4, 1, input_file);
+  fread(buf, 4, 1, input_file);
+  sim->reg[rd]=((buf[0])<<24)|((buf[1])<<16)|((buf[2])<<8)|((buf[3]));
   return 0;
 }
 
 int instr_out(Simulator *sim,int rs,int rt,int rd,int sa){
+  char buf[4];
+  buf[0]=
   (sim->pc)++;
   fwrite(&sim->reg[rs], 4, 1, output_file);
   return 0;
@@ -293,12 +348,12 @@ int instr_bne(Simulator *sim,int rs,int rt,int offset) {
 int instr_lw(Simulator *sim,int rbase,int rt,int offset) {
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
-  if(addr<MEMSIZE){
+  if(0<=addr&&addr<MEMSIZE){
     sim->reg[rt] = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
     Inc(sim->pc);
     return 0;
   }else{
-    fprintf(stderr,"Error(lw): invalid address %d\n",addr);
+    fprintf(stderr,"Error(lw; pc=%d): invalid address %d\n",sim->pc,addr);
     return -1;
   }
 }
@@ -318,7 +373,7 @@ int instr_sw(Simulator *sim,int rbase,int rt,int offset) {
     memory[addr+3]=(char)(((sim->reg[rt])&0xff000000)>>24);
     Inc(sim->pc);
   }else{
-    fprintf(stderr,"Error(sw): invalid address %d\n",addr);
+    fprintf(stderr,"Error(lw; pc=%d): invalid address %d\n",sim->pc,addr);
     return -1;
   }
   return 0;
@@ -327,8 +382,13 @@ int instr_sw(Simulator *sim,int rbase,int rt,int offset) {
 
 /*形式Jの命令*/
 int instr_jal(Simulator *sim,int instr_index) {
-  sim->reg[31] = (sim->pc) +1;
-  sim->pc =  instr_index ;
+  if(instr_index>0x1000000){
+    sim_libs(sim,instr_index);
+    Inc(sim->pc);
+  }else{
+    sim->reg[31] = (sim->pc) +1;
+    sim->pc =  instr_index ;
+  }
   return 0;
 }
 

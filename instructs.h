@@ -51,7 +51,7 @@
 #define NOP 0x00000100
 /*move rt,rs
   addi rt,rs,0に変換される*/
-#define MOVE 0xFE000100
+#define MOVE 0xFC000100
 /*la rt,label
   addi rt,%r0,label に変換される*/
 #define LA 0xFC000101
@@ -60,6 +60,41 @@
   jr rt
   に変換される*/
 #define JALR 0xFC000202
+
+/*シミュレータ用特殊関数*/
+/*未実装のライブラリ関数をシミュレータ側で動作させるようにサポートする*/
+/*すべて2^26-n(n>0)の値のラベルを割り当てておく*/
+/*JALでこれらのラベルを読み込んだ際、対応した動作を行う*/
+/*LIB_***はライブラリで実装されるべき変数*/
+/*DBG_***はデバッグ用関数*/
+#define LIB_RBYTE 0x2000000-1
+#define LIB_RINT 0x2000000-2
+#define LIB_RFLOAT 0x2000000-3
+/*read_*関数*/
+/*標準出力から読み込んだ文字列を対応した形式に置き換え%r1,または%f0に置く*/
+#define LIB_NLINE 0x2000000-4
+/*print_newline関数*/
+/*改行を出力*/
+#define LIB_WBYTE 0x2000000-9
+#define LIB_WINT 0x2000000-10
+#define LIB_WFLOAT 0x2000000-11
+/*write_*関数*/
+/*%r1,または%f0の値を対応した形式で標準出力に出力*/
+#define LIB_SIN 0x2000000-17
+#define LIB_COS 0x2000000-18
+#define LIB_ATAN 0x2000000-19
+/*名称通り。入力・出力ともに%f0*/
+#define LIB_ITOF 0x2000000-20
+/*入力:%r1,出力:%f0*/
+#define LIB_FTOI 0x2000000-21
+/*入力:%f0,出力:%r1*/
+#define LIB_FLOOR 0x2000000-22
+/*入力,出力:%f0*/
+#define LIB_SQRT  0x2000000-23
+/*入力,出力:%f0*/
+#define DBG_PSTR 0x2000000-65
+/*%r1に格納されたポインタからNULまで文字列を出力。*/
+
 
 /*アセンブラ指令,デバッグ用命令 バイナリファイルには含めない命令*/
 #define MASK_ASSEM_INSTR 0x02000000

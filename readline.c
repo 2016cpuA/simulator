@@ -295,6 +295,71 @@ int which_directive(char *opcode){
   }
 }
 
+/*特殊関数へのラベル(実態はシンボル)*/
+#define NUM_SIM_SYMBOLS 15
+void add_symbols(Label *labels,int max,int *i){  
+  strcpy(labels[*i].name,"min_caml_read_byte");
+  labels[*i].pc=LIB_RBYTE;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_read_int");
+  labels[*i].pc=LIB_RINT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_read_float");
+  labels[*i].pc=LIB_RFLOAT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_print_byte");
+  labels[*i].pc=LIB_WBYTE;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_print_int");
+  labels[*i].pc=LIB_WINT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_print_float");
+  labels[*i].pc=LIB_WFLOAT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_print_new_line");
+  labels[*i].pc=LIB_NLINE;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_sin");
+  labels[*i].pc=LIB_SIN;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_cos");
+  labels[*i].pc=LIB_COS;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_atan");
+  labels[*i].pc=LIB_ATAN;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_itof");
+  labels[*i].pc=LIB_ITOF;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_ftoi");
+  labels[*i].pc=LIB_FTOI;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_ffloor");
+  labels[*i].pc=LIB_FLOOR;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_sqrt");
+  labels[*i].pc=LIB_SQRT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"DBG_PRINT_STRING");
+  labels[*i].pc=DBG_PSTR;
+  labels[*i].type=0;
+  *i=*i+1;
+}
+
 /*Parser本体*/
 /*ブレークポイントのフラグ*/
 int is_break=0;
@@ -659,10 +724,10 @@ int readline(int fd,Instr_list *instr_l){
     if(step==0){
       /*step 0*/
       lseek(fd,0,SEEK_SET);
-      labels=(Label*)malloc((colons+1)*sizeof(Label));
-      linker=(Label*)malloc(links*sizeof(Label));
-      n_label=colons+1;
+      n_label=colons+1+NUM_SIM_SYMBOLS;
       n_linker=links;
+      labels=(Label*)malloc(n_label*sizeof(Label));
+      linker=(Label*)malloc(links*sizeof(Label));
       colons=0;
     }else if(step==1){
       /*step 1*/
@@ -670,6 +735,8 @@ int readline(int fd,Instr_list *instr_l){
       strcpy(labels[colons].name,"SYS_EXIT");
       labels[colons].pc=l;
       labels[colons].type=SECTION_TEXT;
+      colons++;
+      add_symbols(labels,n_label,&colons);
       if(output_instr_file!=NULL){
 	print_labels(labels,n_label,output_instr_file);
       }
