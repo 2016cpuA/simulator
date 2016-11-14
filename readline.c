@@ -338,11 +338,11 @@ void add_symbols(Label *labels,int max,int *i){
   labels[*i].pc=LIB_ATAN;
   labels[*i].type=0;
   *i=*i+1;
-  strcpy(labels[*i].name,"min_caml_itof");
+  strcpy(labels[*i].name,"min_caml_float_of_int");
   labels[*i].pc=LIB_ITOF;
   labels[*i].type=0;
   *i=*i+1;
-  strcpy(labels[*i].name,"min_caml_ftoi");
+  strcpy(labels[*i].name,"min_caml_int_of_float");
   labels[*i].pc=LIB_FTOI;
   labels[*i].type=0;
   *i=*i+1;
@@ -514,13 +514,13 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
 	i++;
 	now+=pos_delim+1;
 	rest-=pos_delim+1;
-	if(now[pos_delim]=='('){
+	if(*now=='('){
 	  while(Is_Space(*now)&&rest>0){
 	    rest--;
 	    now++;
 	  }
 	  if(rest<=0){
-	    printf("Error(line %d): expected ')'",d_lines);
+	    printf("Error(line %d): expected ')'\n",d_lines);
 	    err=SYNTAX_ERROR;
 	    break;
 	  }
