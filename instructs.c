@@ -237,7 +237,7 @@ void sim_libs(Simulator *sim,int label){
     sim->reg[1]=(sim->freg[0]>0.0);
     break;
   case LIB_F_IS_NEG:
-    sim->reg[1]=(sim->freg[0]>0.0);
+    sim->reg[1]=(sim->freg[0]<0.0);
     break;
 
   case LIB_F_NEG:
