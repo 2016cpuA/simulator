@@ -116,7 +116,7 @@ int step_simulation(Instruct *instr, int n) {
     /*FETCH*/
     now=instr[sim.pc];
     stop = Is_break(now.opcode);
-    if (stop || (flag == STEP)||clocks==2159) {
+    if (stop || (flag == STEP)||clocks==0) {
       fprintf(stderr, "STEP No.%d.\n", sim.pc);
       print_regs(sim);
       fprintf(stderr, "clocks: %lld\n", clocks);

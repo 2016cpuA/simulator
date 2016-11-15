@@ -236,7 +236,7 @@ int convert_data(Instr_list *prepare,int *mem){
 	now=now->next;
 	n_instr+=2;
       }
-      if(data_lo!=0){
+      if(data_lo!=0||(data_hi==0&&data_lo==0)){
 	ins.opcode=ORI;
 	ins.operands[0]=1;
 	if(data_hi!=0)
@@ -249,17 +249,15 @@ int convert_data(Instr_list *prepare,int *mem){
 	now=now->next;
 	n_instr++;
       }
-      if(data_hi!=0||data_lo!=0){
-        ins.opcode=SW;
-	ins.operands[0]=1;
-	ins.operands[1]=*mem;
-	ins.operands[2]=30;	
-	ins.operands[3]=0;
-	list_push(now,ins);
-	now=now->next;
-	n_instr++;
-	*mem+=align;
-      }
+      ins.opcode=SW;
+      ins.operands[0]=1;
+      ins.operands[1]=*mem;
+      ins.operands[2]=30;	
+      ins.operands[3]=0;
+      list_push(now,ins);
+      now=now->next;
+      n_instr++;
+      *mem+=align;
     }else{
       now=now->next;
     }
@@ -451,15 +449,13 @@ int get_operand(char *op,int type_op,int pc,int opcode){
     }
     if((dest_pc=get_pc(labels,buf,&symbol_type))>=0){
       op_fun=opcode&MASK_OP_FUN;
-      if((op_fun==J)||(op_fun==JAL)){
-	return dest_pc+offset;
-      }else if(op_fun==(LA&MASK_OP_FUN)){
+      if((op_fun==BEQ)||(op_fun==BNE)){
+	return dest_pc-pc;
+      }else /*if(op_fun==(LA&MASK_OP_FUN))*/{
 	if(symbol_type==SECTION_TEXT)
 	  return dest_pc+offset;
 	else
 	  return dest_pc;
-      }else{
-	return dest_pc-pc;
       }
     }else{
       fprintf(stderr,"Error(line %d): unknown operand '%s'\n",d_lines,buf);

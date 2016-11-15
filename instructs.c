@@ -157,7 +157,7 @@ int make_code_j(int opcode,int instr_index) {
 }
 
 #ifndef _HP
-#define _HP 30
+#define _HP 28
 #endif
 
 void sim_libs(Simulator *sim,int label){
@@ -449,7 +449,12 @@ int instr_jal(Simulator *sim,int instr_index) {
 }
 
 int instr_j(Simulator *sim,int instr_index) {
-  sim->pc = instr_index ;
+  if(instr_index>0x1000000){
+    sim_libs(sim,instr_index);
+    sim->pc=sim->reg[31];
+  }else{
+    sim->pc =  instr_index ;
+  }
   return 0;
 }
 
