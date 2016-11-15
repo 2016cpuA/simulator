@@ -408,28 +408,40 @@ int section=1;
 int data_width=4;
 /*オペランド部分のみ*/
 int get_operand(char *op,int type_op,int pc,int opcode){
-  int dest_pc,pos_space;
+  int dest_pc,pos_space,tmp;
   char buf[32];
   int op_fun,symbol_type;
   if(isnum(op[0])){
     if (!(type_op&&IMMIDIATE))
-      printf("Warning(line %d): wrong operand type\n",d_lines); 
+      fprintf(stderr,"Warning(line %d): wrong operand type\n",d_lines); 
     return strtol(op,NULL,0);
   }else if(op[0]=='%'){
     if(op[1]=='r'){
       if (!(type_op&&REG))
-	printf("Warning(line %d): wrong operand type\n",d_lines);  
-      return atoi(op+2);
+	fprintf(stderr,"Warning(line %d): wrong operand type\n",d_lines);
+      tmp = atoi(op+2);
+      if(tmp<0||tmp>31){
+	fprintf(stderr,"Error(line %d): wrong operand '%s'->%d\n",d_lines,op,tmp);
+	return SYNTAX_ERROR;
+      }else{
+	return tmp;
+      }
     }else if(op[1]=='f'){
       if(!(type_op&&FREG))
-        printf("Warning(line %d): wrong operand type\n",d_lines); 
-      return atoi(op+2);
+        fprintf(stderr,"Warning(line %d): wrong operand type\n",d_lines); 
+      tmp = atoi(op+2);
+      if(tmp<0||tmp>31){
+	fprintf(stderr,"Error(line %d): wrong operand '%s'->%d\n",d_lines,op,tmp);	
+	return SYNTAX_ERROR;
+      }else{
+	return tmp;
+      }
     }else{
-      printf("Error(line %d): unknown operand '%s'\n",d_lines,op);
+      fprintf(stderr,"Error(line %d): unknown operand '%s'\n",d_lines,op);
     }
   }else if(op[0]=='$'){
     if (!(type_op&&IMMIDIATE))
-      printf("Warning(line %d): wrong operand type\n",d_lines); 
+      fprintf(stderr,"Warning(line %d): wrong operand type\n",d_lines); 
     return strtol(op+1,NULL,0);
   }else{
     if((pos_space=search_space(op,strlen(op)))>=0){
@@ -450,7 +462,7 @@ int get_operand(char *op,int type_op,int pc,int opcode){
 	return dest_pc-pc;
       }
     }else{
-      printf("Error(line %d): unknown operand '%s'\n",d_lines,buf);
+      fprintf(stderr,"Error(line %d): unknown operand '%s'\n",d_lines,buf);
     }
   }
   return SYNTAX_ERROR;
@@ -542,7 +554,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
 	i++;
 	now+=pos_delim+1;
 	rest-=pos_delim+1;
-	if(*now=='('){
+	if(*(now-1)=='('){
 	  while(Is_Space(*now)&&rest>0){
 	    rest--;
 	    now++;
@@ -554,6 +566,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
 	  }
 	  pos_delim=search(')',now,rest);
 	  strncpy(operands[i],now,pos_delim);
+	  operands[i][pos_delim]=0;
 	  instr_read.operands[i]=get_operand(operands[i],7,pc,instr_read.opcode);
 	  if(instr_read.operands[i]==SYNTAX_ERROR){
 	    err=SYNTAX_ERROR;

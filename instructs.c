@@ -9,6 +9,8 @@
 FILE *input_file;
 FILE *output_file;
 
+int max_addr=0;
+
 int get_instr(char *name){
   long long int x=0;
   int i;
@@ -417,11 +419,10 @@ int instr_sw(Simulator *sim,int rbase,int rt,int offset) {
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
   /*for debug*/
-  /*static int max_addr = 0;
-     max_addr=(max_addr>sim->reg[rbase])?max_addr:sim->reg[rbase];
-     sim->reg[16]=max_addr;*/
+  max_addr=(max_addr>sim->reg[rbase])?max_addr:sim->reg[rbase];
+  /*sim->reg[16]=max_addr;*/
   /**/
-  if(addr<MEMSIZE){
+  if(addr>=0&&addr<MEMSIZE){
     memory[addr]=(char)((sim->reg[rt])&0xff);
     memory[addr+1]=(char)(((sim->reg[rt])&0xff00)>>8);
     memory[addr+2]=(char)(((sim->reg[rt])&0xff0000)>>16);
@@ -517,8 +518,3 @@ int instr_fswc1(Simulator *sim,int rbase,int ft,int offset){
 }
 
 
-/*浮動小数点数用命令(仕様未定義)*/
-int instr_finv(Simulator *sim,int rs,int rt,int rd,int sa);
-int instr_sqrt(Simulator *sim,int rs,int rt,int rd,int sa);
-int instr_sin(Simulator *sim,int rs,int rt,int rd,int sa);
-int instr_cos(Simulator *sim,int rs,int rt,int rd,int sa);
