@@ -110,6 +110,9 @@
 /*入力:%r1,%f0,出力:%r1*/
 #define LIB_F_HALF 0x2000000-30
 /*入力:%r1,%f0,出力:%r1*/
+#define LIB_F_IS_NEG 0x2000000-31
+
+/*入力:%r1,%f0,出力:%r1*/
 
 
 #define DBG_PSTR 0x2000000-65

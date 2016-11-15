@@ -296,7 +296,7 @@ int which_directive(char *opcode){
 }
 
 /*特殊関数へのラベル(実態はシンボル)*/
-#define NUM_SIM_SYMBOLS 24
+#define NUM_SIM_SYMBOLS 25
 void add_symbols(Label *labels,int max,int *i){  
   strcpy(labels[*i].name,"min_caml_read_byte");
   labels[*i].pc=LIB_RBYTE;
@@ -388,6 +388,10 @@ void add_symbols(Label *labels,int max,int *i){
   *i=*i+1;
   strcpy(labels[*i].name,"min_caml_fhalf");
   labels[*i].pc=LIB_F_HALF;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fisneg");
+  labels[*i].pc=LIB_F_IS_NEG;
   labels[*i].type=0;
   *i=*i+1;
   strcpy(labels[*i].name,"DBG_PRINT_STRING");

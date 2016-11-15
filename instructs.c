@@ -236,6 +236,10 @@ void sim_libs(Simulator *sim,int label){
   case LIB_F_IS_POS:
     sim->reg[1]=(sim->freg[0]>0.0);
     break;
+  case LIB_F_IS_NEG:
+    sim->reg[1]=(sim->freg[0]>0.0);
+    break;
+
   case LIB_F_NEG:
     sim->freg[0]=-(sim->freg[0]);
     break;
