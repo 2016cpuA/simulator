@@ -296,7 +296,7 @@ int which_directive(char *opcode){
 }
 
 /*特殊関数へのラベル(実態はシンボル)*/
-#define NUM_SIM_SYMBOLS 18
+#define NUM_SIM_SYMBOLS 24
 void add_symbols(Label *labels,int max,int *i){  
   strcpy(labels[*i].name,"min_caml_read_byte");
   labels[*i].pc=LIB_RBYTE;
@@ -364,6 +364,30 @@ void add_symbols(Label *labels,int max,int *i){
   *i=*i+1;
   strcpy(labels[*i].name,"min_caml_create_float_array");
   labels[*i].pc=LIB_CR_ARRAY_F;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fiszero");
+  labels[*i].pc=LIB_F_IS_0;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fispos");
+  labels[*i].pc=LIB_F_IS_POS;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fneg");
+  labels[*i].pc=LIB_F_NEG;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fsqr");
+  labels[*i].pc=LIB_F_SQR;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fless");
+  labels[*i].pc=LIB_F_LESS;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fhalf");
+  labels[*i].pc=LIB_F_HALF;
   labels[*i].type=0;
   *i=*i+1;
   strcpy(labels[*i].name,"DBG_PRINT_STRING");

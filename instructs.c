@@ -230,6 +230,25 @@ void sim_libs(Simulator *sim,int label){
     sim->reg[_HP]+=(sim->reg[1])*4; 
     sim->reg[1]=hp;
     break;
+  case LIB_F_IS_0:
+    sim->reg[1]=(sim->freg[0]==0.0);
+    break;
+  case LIB_F_IS_POS:
+    sim->reg[1]=(sim->freg[0]>0.0);
+    break;
+  case LIB_F_NEG:
+    sim->freg[0]=-(sim->freg[0]);
+    break;
+  case LIB_F_SQR:
+    sim->freg[0]=(sim->freg[0])*(sim->freg[0]);
+    break;
+  case LIB_F_LESS:
+    sim->reg[1]=(sim->freg[0]<sim->freg[1]);
+    break;
+  case LIB_F_HALF:
+    sim->freg[0]=(sim->freg[0])*0.5;
+    break;
+
   case DBG_PSTR:
     fprintf(stderr,"%s\n",(sim->mem)+(sim->reg[1]));
     break;
