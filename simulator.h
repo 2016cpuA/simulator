@@ -6,7 +6,7 @@
 #define FREGS 32
 
 typedef struct simulator {
-  char mem[MEMSIZE];
+  char *mem;
   int reg[REGS];
   float freg[FREGS];
   int pc;
