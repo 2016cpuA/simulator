@@ -2,13 +2,13 @@ CC=gcc
 CFLAGS=-Wall -g
 LMFLAG=-lm
 
-SRC= main.c list.c simulator.c sim_binary.c fetch.c readline.c assemble.c instructs.c -lm
+SRC= main.c list.c simulator.c sim_binary.c fetch.c readline.c assemble.c instructs.c
 OBJ=$(SRC:%.c=%.o)
 LIBS= simulator.h instructs.h
 LIBLIST= list.h
 
 simulator: $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LMFLAG)
 
 instructs.o: instructs.c $(LIBS)
 	$(CC) $(CFLAGS) -c $< $(LMFLAG)

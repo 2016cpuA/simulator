@@ -77,7 +77,7 @@ int get_instr(char *name){
     return SUB_S;  
   }else if(!(x^0x6d756c2e73L)|!(x^0x4d554c2e53L)|!(x^0x4d554c2e73L)){
     return MUL_S;
-  }else if(!(x^0x6469762e73L)|!(x^0x5449562e53L)|!(x^0x5449562e73L)){
+  }else if(!(x^0x6469762e73L)|!(x^0x4449562e53L)|!(x^0x4449562e73L)){
     return DIV_S;
   }else if(!(x^0x632e65712e73L)|!(x^0x432e45512e53L)|!(x^0x432e65712e73L)){
     return C_EQ_S;
@@ -154,7 +154,9 @@ int make_code_j(int opcode,int instr_index) {
   return (opcode&0xfc000000)|(instr_index&0x03ffffff);
 }
 
+#ifndef _HP
 #define _HP 30
+#endif
 
 void sim_libs(Simulator *sim,int label){
   int i,int_init,max,hp,mem;
@@ -225,8 +227,8 @@ void sim_libs(Simulator *sim,int label){
       *(float*)&(sim->mem[i+mem])=fl_init;
       mem=mem+4;  
     }
-    sim->reg[1]=hp;
     sim->reg[_HP]+=(sim->reg[1])*4; 
+    sim->reg[1]=hp;
     break;
   case DBG_PSTR:
     fprintf(stderr,"%s\n",(sim->mem)+(sim->reg[1]));
