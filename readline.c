@@ -341,7 +341,7 @@ void add_symbols(Label *labels,int max,int *i){
   labels[*i].type=0;
   *i=*i+1;
   strcpy(labels[*i].name,"min_caml_truncate");
-  labels[*i].pc=LIB_ITOF;
+  labels[*i].pc=LIB_FTOI;
   labels[*i].type=0;
   *i=*i+1;
   strcpy(labels[*i].name,"min_caml_int_of_float");

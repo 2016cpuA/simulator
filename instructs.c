@@ -195,7 +195,7 @@ void sim_libs(Simulator *sim,int label){
     sim->freg[1]=atanf(sim->freg[1]);
     break;
   case LIB_ITOF:
-    sim->freg[0]=(float)(sim->reg[1]);
+    sim->freg[1]=(float)(sim->reg[1]);
     break;
   case LIB_FTOI:
     sim->reg[1]=(int)(sim->freg[1]);
