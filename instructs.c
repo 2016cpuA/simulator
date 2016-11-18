@@ -401,6 +401,7 @@ int instr_lw(Simulator *sim,int rbase,int rt,int offset) {
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
   if(0<=addr&&addr<MEMSIZE){
+    if(addr%4!=0) fprintf(stderr,"Warning(lw;pc=%d): bad address %d\n",sim->pc,addr);
     sim->reg[rt] = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
     Inc(sim->pc);
     return 0;
@@ -418,13 +419,14 @@ int instr_sw(Simulator *sim,int rbase,int rt,int offset) {
   /*sim->reg[16]=max_addr;*/
   /**/
   if(addr>=0&&addr<MEMSIZE){
+    if(addr%4!=0) fprintf(stderr,"Warning(sw;pc=%d): bad address %d\n",sim->pc,addr);
     memory[addr]=(char)((sim->reg[rt])&0xff);
     memory[addr+1]=(char)(((sim->reg[rt])&0xff00)>>8);
     memory[addr+2]=(char)(((sim->reg[rt])&0xff0000)>>16);
     memory[addr+3]=(char)(((sim->reg[rt])&0xff000000)>>24);
     Inc(sim->pc);
   }else{
-    fprintf(stderr,"Error(lw; pc=%d): invalid address %d\n",sim->pc,addr);
+    fprintf(stderr,"Error(sw; pc=%d): invalid address %d\n",sim->pc,addr);
     return -1;
   }
   return 0;
@@ -500,12 +502,13 @@ int instr_flwc1(Simulator *sim,int rbase,int ft,int offset){
   char *memory = sim->mem;
   union i_f dest;
   if(0<=addr&&addr<MEMSIZE){
+    if(addr%4!=0) fprintf(stderr,"Warning(lwc1;pc=%d): bad address %d\n",sim->pc,addr);
     dest.i = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
     sim->freg[ft] = dest.f;
     Inc(sim->pc);
     return 0;
   }else{
-    fprintf(stderr,"Error(lw; pc=%d): invalid address %d\n",sim->pc,addr);
+    fprintf(stderr,"Error(lwc1; pc=%d): invalid address %d\n",sim->pc,addr);
     return -1;
   }
 }  
@@ -514,6 +517,7 @@ int instr_fswc1(Simulator *sim,int rbase,int ft,int offset){
   char *memory = sim->mem;
   union i_f src;
   if(addr>=0&&addr<MEMSIZE){
+    if(addr%4!=0) fprintf(stderr,"Warning(swc1;pc=%d): bad address %d\n",sim->pc,addr);
     src.f=sim->freg[ft];
     memory[addr]=(char)(src.i&0xff);
     memory[addr+1]=(char)((src.i&0xff00)>>8);
@@ -521,7 +525,7 @@ int instr_fswc1(Simulator *sim,int rbase,int ft,int offset){
     memory[addr+3]=(char)((src.i&0xff000000)>>24);
     Inc(sim->pc);
   }else{
-    fprintf(stderr,"Error(lw; pc=%d): invalid address %d\n",sim->pc,addr);
+    fprintf(stderr,"Error(swc1; pc=%d): invalid address %d\n",sim->pc,addr);
     return -1;
   }
   return 0;
