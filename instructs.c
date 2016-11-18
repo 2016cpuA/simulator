@@ -499,21 +499,31 @@ int instr_flwc1(Simulator *sim,int rbase,int ft,int offset){
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
   union i_f dest;
-  dest.i = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
-  sim->freg[ft] = dest.f;
-  Inc(sim->pc);
-  return 0;
+  if(0<=addr&&addr<MEMSIZE){
+    dest.i = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
+    sim->freg[ft] = dest.f;
+    Inc(sim->pc);
+    return 0;
+  }else{
+    fprintf(stderr,"Error(lw; pc=%d): invalid address %d\n",sim->pc,addr);
+    return -1;
+  }
 }  
 int instr_fswc1(Simulator *sim,int rbase,int ft,int offset){
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
   union i_f src;
-  src.f=sim->freg[ft];
-  memory[addr]=(char)(src.i&0xff);
-  memory[addr+1]=(char)((src.i&0xff00)>>8);
-  memory[addr+2]=(char)((src.i&0xff0000)>>16);
-  memory[addr+3]=(char)((src.i&0xff000000)>>24);
-  Inc(sim->pc);
+  if(addr>=0&&addr<MEMSIZE){
+    src.f=sim->freg[ft];
+    memory[addr]=(char)(src.i&0xff);
+    memory[addr+1]=(char)((src.i&0xff00)>>8);
+    memory[addr+2]=(char)((src.i&0xff0000)>>16);
+    memory[addr+3]=(char)((src.i&0xff000000)>>24);
+    Inc(sim->pc);
+  }else{
+    fprintf(stderr,"Error(lw; pc=%d): invalid address %d\n",sim->pc,addr);
+    return -1;
+  }
   return 0;
 }
 
