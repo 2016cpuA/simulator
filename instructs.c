@@ -226,7 +226,7 @@ void sim_libs(Simulator *sim,int label){
     for(i=0;i<max;i++){
       *(float*)&(sim->mem[i*4+hp])=fl_init;
     }
-    sim->reg[_HP]+=(sim->reg[1])*4; 
+    sim->reg[_HP]+=max*4; 
     sim->reg[1]=hp;
     break;
   case LIB_F_IS_0:
