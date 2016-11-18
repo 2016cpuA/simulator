@@ -340,7 +340,7 @@ void add_symbols(Label *labels,int max,int *i){
   labels[*i].pc=LIB_ITOF;
   labels[*i].type=0;
   *i=*i+1;
-  strcpy(labels[*i].name,"min_caml_turncate");
+  strcpy(labels[*i].name,"min_caml_truncate");
   labels[*i].pc=LIB_ITOF;
   labels[*i].type=0;
   *i=*i+1;
