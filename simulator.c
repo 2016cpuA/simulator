@@ -86,6 +86,7 @@ int simulation(Instruct *instr, int n){
     }
     clocks++;
   }
+  fflush(stdout);
   if(clocks>=iter_max){
     fprintf(stderr,"Execution stopped; too long operation.\n");
   }else if(flag<0){

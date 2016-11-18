@@ -161,7 +161,7 @@ int make_code_j(int opcode,int instr_index) {
 #endif
 
 void sim_libs(Simulator *sim,int label){
-  int i,int_init,max,hp,mem;
+  int i,int_init,max,hp;
   float fl_init;
   switch(label){
   case LIB_WBYTE: 
@@ -171,7 +171,7 @@ void sim_libs(Simulator *sim,int label){
     fprintf(output_file,"%d",(sim->reg[1]));
     break;
   case LIB_WFLOAT: 
-    fprintf(output_file,"%f",(sim->freg[0]));
+    fprintf(output_file,"%f",(sim->freg[1]));
     break;
   case LIB_NLINE: 
     fprintf(output_file,"\n");
@@ -183,39 +183,38 @@ void sim_libs(Simulator *sim,int label){
     fscanf(input_file,"%d",&(sim->reg[1]));
     break;
   case LIB_RFLOAT: 
-    fscanf(input_file,"%f",&(sim->freg[0]));
+    fscanf(input_file,"%f",&(sim->freg[1]));
     break;
   case LIB_SIN: 
-    sim->freg[0]=sinf(sim->freg[0]);
+    sim->freg[1]=sinf(sim->freg[1]);
     break;
   case LIB_COS: 
-    sim->freg[0]=cosf(sim->freg[0]);
+    sim->freg[1]=cosf(sim->freg[1]);
     break;
   case LIB_ATAN: 
-    sim->freg[0]=atanf(sim->freg[0]);
+    sim->freg[1]=atanf(sim->freg[1]);
     break;
   case LIB_ITOF:
     sim->freg[0]=(float)(sim->reg[1]);
     break;
   case LIB_FTOI:
-    sim->reg[1]=(int)(sim->freg[0]);
+    sim->reg[1]=(int)(sim->freg[1]);
     break;
   case LIB_FLOOR:
-    sim->freg[0]=floorf(sim->freg[0]);
+    sim->freg[1]=floorf(sim->freg[1]);
     break;
   case LIB_SQRT:
-    sim->freg[0]=sqrtf(sim->freg[0]);
+    sim->freg[1]=sqrtf(sim->freg[1]);
     break;
   case LIB_FABS:
-    sim->freg[0]=fabsf(sim->freg[0]);
+    sim->freg[1]=fabsf(sim->freg[1]);
     break;
   case LIB_CR_ARRAY:
     hp=sim->reg[_HP];
     max=sim->reg[1];
     int_init=sim->reg[2];
-    mem=sim->mem[hp];
     for(i=0;i<max;i++){
-      *(int*)&(sim->mem[i*4+mem])=int_init;
+      *(int*)&(sim->mem[i*4+hp])=int_init;
     }
     sim->reg[_HP]+=(sim->reg[1])*4;
     sim->reg[1]=hp;
@@ -223,38 +222,34 @@ void sim_libs(Simulator *sim,int label){
   case LIB_CR_ARRAY_F:
     hp=sim->reg[_HP];
     max=sim->reg[1];
-    fl_init=sim->freg[0];
-    mem=sim->mem[hp];
-    for(i=0;i<sim->reg[1];i++){
-      *(float*)&(sim->mem[i+mem])=fl_init;
-      mem=mem+4;  
+    fl_init=sim->freg[1];
+    for(i=0;i<max;i++){
+      *(float*)&(sim->mem[i*4+hp])=fl_init;
     }
     sim->reg[_HP]+=(sim->reg[1])*4; 
     sim->reg[1]=hp;
     break;
   case LIB_F_IS_0:
-    sim->reg[1]=(sim->freg[0]==0.0);
+    sim->reg[1]=(sim->freg[1]==0.0);
     break;
   case LIB_F_IS_POS:
-    sim->reg[1]=(sim->freg[0]>0.0);
+    sim->reg[1]=(sim->freg[1]>0.0);
     break;
   case LIB_F_IS_NEG:
-    sim->reg[1]=(sim->freg[0]<0.0);
+    sim->reg[1]=(sim->freg[1]<0.0);
     break;
-
   case LIB_F_NEG:
-    sim->freg[0]=-(sim->freg[0]);
+    sim->freg[1]=-(sim->freg[1]);
     break;
   case LIB_F_SQR:
-    sim->freg[0]=(sim->freg[0])*(sim->freg[0]);
+    sim->freg[1]=(sim->freg[1])*(sim->freg[1]);
     break;
   case LIB_F_LESS:
-    sim->reg[1]=(sim->freg[0]<sim->freg[1]);
+    sim->reg[1]=(sim->freg[1]<sim->freg[1]);
     break;
   case LIB_F_HALF:
-    sim->freg[0]=(sim->freg[0])*0.5;
+    sim->freg[1]=(sim->freg[1])*0.5;
     break;
-
   case DBG_PSTR:
     fprintf(stderr,"%s\n",(sim->mem)+(sim->reg[1]));
     break;
