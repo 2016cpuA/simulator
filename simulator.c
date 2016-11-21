@@ -318,7 +318,7 @@ int analyze(Instruct *instr, int n) {
 
 
 /*出力*/
-  printf("\n\n---------------------\n   statistics info\n---------------------\n");
+  printf("\n\n---------------------\n   statistical info\n---------------------\n");
 
   for (i = 0; i < 35; i++) {
     printf("%8s: %2d  times\n", opcodes[index[i]], occur[i]);
