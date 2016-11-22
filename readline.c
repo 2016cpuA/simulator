@@ -147,7 +147,7 @@ int search_delim(char* buf,int bufsize){
 int convert_mnemonic(Instr_list *instr_l,int pc){
   Instruct target,ins;
   int opcode,op[4],dpc=1,i;
-  int isbreak;
+  int isbreak=0;
   target=instr_l->instr;
   opcode=target.opcode;
   if(opcode&_BREAK){
@@ -236,7 +236,7 @@ int convert_data(Instr_list *prepare,int *mem){
 	now=now->next;
 	n_instr+=2;
       }
-      if(data_lo!=0){
+      if(data_lo!=0||(data_hi==0&&data_lo==0)){
 	ins.opcode=ORI;
 	ins.operands[0]=1;
 	if(data_hi!=0)
@@ -249,17 +249,15 @@ int convert_data(Instr_list *prepare,int *mem){
 	now=now->next;
 	n_instr++;
       }
-      if(data_hi!=0||data_lo!=0){
-        ins.opcode=SW;
-	ins.operands[0]=1;
-	ins.operands[1]=*mem;
-	ins.operands[2]=30;	
-	ins.operands[3]=0;
-	list_push(now,ins);
-	now=now->next;
-	n_instr++;
-	*mem+=align;
-      }
+      ins.opcode=SW;
+      ins.operands[0]=1;
+      ins.operands[1]=*mem;
+      ins.operands[2]=30;	
+      ins.operands[3]=0;
+      list_push(now,ins);
+      now=now->next;
+      n_instr++;
+      *mem+=align;
     }else{
       now=now->next;
     }
@@ -295,6 +293,119 @@ int which_directive(char *opcode){
   }
 }
 
+/*特殊関数へのラベル(実態はシンボル)*/
+#define NUM_SIM_SYMBOLS 27
+void add_symbols(Label *labels,int max,int *i){  
+  strcpy(labels[*i].name,"min_caml_read_byte");
+  labels[*i].pc=LIB_RBYTE;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_read_int");
+  labels[*i].pc=LIB_RINT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_read_float");
+  labels[*i].pc=LIB_RFLOAT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_print_char");
+  labels[*i].pc=LIB_WBYTE;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_print_int");
+  labels[*i].pc=LIB_WINT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_print_float");
+  labels[*i].pc=LIB_WFLOAT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_print_newline");
+  labels[*i].pc=LIB_NLINE;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_sin");
+  labels[*i].pc=LIB_SIN;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_cos");
+  labels[*i].pc=LIB_COS;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_atan");
+  labels[*i].pc=LIB_ATAN;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_float_of_int");
+  labels[*i].pc=LIB_ITOF;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_truncate");
+  labels[*i].pc=LIB_FTOI;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_int_of_float");
+  labels[*i].pc=LIB_FTOI;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_floor");
+  labels[*i].pc=LIB_FLOOR;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_sqrt");
+  labels[*i].pc=LIB_SQRT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fabs");
+  labels[*i].pc=LIB_FABS;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_abs_float");
+  labels[*i].pc=LIB_FABS;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_create_array");
+  labels[*i].pc=LIB_CR_ARRAY;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_create_float_array");
+  labels[*i].pc=LIB_CR_ARRAY_F;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fiszero");
+  labels[*i].pc=LIB_F_IS_0;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fispos");
+  labels[*i].pc=LIB_F_IS_POS;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fneg");
+  labels[*i].pc=LIB_F_NEG;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fsqr");
+  labels[*i].pc=LIB_F_SQR;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fless");
+  labels[*i].pc=LIB_F_LESS;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fhalf");
+  labels[*i].pc=LIB_F_HALF;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_fisneg");
+  labels[*i].pc=LIB_F_IS_NEG;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"DBG_PRINT_STRING");
+  labels[*i].pc=DBG_PSTR;
+  labels[*i].type=0;
+  *i=*i+1;
+}
+
 /*Parser本体*/
 /*ブレークポイントのフラグ*/
 int is_break=0;
@@ -303,28 +414,40 @@ int section=1;
 int data_width=4;
 /*オペランド部分のみ*/
 int get_operand(char *op,int type_op,int pc,int opcode){
-  int dest_pc,pos_space;
+  int dest_pc,pos_space,tmp;
   char buf[32];
   int op_fun,symbol_type;
   if(isnum(op[0])){
     if (!(type_op&&IMMIDIATE))
-      printf("Warning(line %d): wrong operand type\n",d_lines); 
+      fprintf(stderr,"Warning(line %d): wrong operand type\n",d_lines); 
     return strtol(op,NULL,0);
   }else if(op[0]=='%'){
     if(op[1]=='r'){
       if (!(type_op&&REG))
-	printf("Warning(line %d): wrong operand type\n",d_lines);  
-      return atoi(op+2);
+	fprintf(stderr,"Warning(line %d): wrong operand type\n",d_lines);
+      tmp = atoi(op+2);
+      if(tmp<0||tmp>31){
+	fprintf(stderr,"Error(line %d): wrong operand '%s'->%d\n",d_lines,op,tmp);
+	return SYNTAX_ERROR;
+      }else{
+	return tmp;
+      }
     }else if(op[1]=='f'){
       if(!(type_op&&FREG))
-        printf("Warning(line %d): wrong operand type\n",d_lines); 
-      return atoi(op+2);
+        fprintf(stderr,"Warning(line %d): wrong operand type\n",d_lines); 
+      tmp = atoi(op+2);
+      if(tmp<0||tmp>31){
+	fprintf(stderr,"Error(line %d): wrong operand '%s'->%d\n",d_lines,op,tmp);	
+	return SYNTAX_ERROR;
+      }else{
+	return tmp;
+      }
     }else{
-      printf("Error(line %d): unknown operand '%s'\n",d_lines,op);
+      fprintf(stderr,"Error(line %d): unknown operand '%s'\n",d_lines,op);
     }
   }else if(op[0]=='$'){
     if (!(type_op&&IMMIDIATE))
-      printf("Warning(line %d): wrong operand type\n",d_lines); 
+      fprintf(stderr,"Warning(line %d): wrong operand type\n",d_lines); 
     return strtol(op+1,NULL,0);
   }else{
     if((pos_space=search_space(op,strlen(op)))>=0){
@@ -334,18 +457,16 @@ int get_operand(char *op,int type_op,int pc,int opcode){
     }
     if((dest_pc=get_pc(labels,buf,&symbol_type))>=0){
       op_fun=opcode&MASK_OP_FUN;
-      if((op_fun==J)||(op_fun==JAL)){
-	return dest_pc+offset;
-      }else if(op_fun==(LA&MASK_OP_FUN)){
+      if((op_fun==BEQ)||(op_fun==BNE)){
+	return dest_pc-pc;
+      }else /*if(op_fun==(LA&MASK_OP_FUN))*/{
 	if(symbol_type==SECTION_TEXT)
 	  return dest_pc+offset;
 	else
 	  return dest_pc;
-      }else{
-	return dest_pc-pc;
       }
     }else{
-      printf("Error(line %d): unknown operand '%s'\n",d_lines,buf);
+      fprintf(stderr,"Error(line %d): unknown operand '%s'\n",d_lines,buf);
     }
   }
   return SYNTAX_ERROR;
@@ -437,18 +558,19 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
 	i++;
 	now+=pos_delim+1;
 	rest-=pos_delim+1;
-	if(now[pos_delim]=='('){
+	if(*(now-1)=='('){
 	  while(Is_Space(*now)&&rest>0){
 	    rest--;
 	    now++;
 	  }
 	  if(rest<=0){
-	    printf("Error(line %d): expected ')'",d_lines);
+	    printf("Error(line %d): expected ')'\n",d_lines);
 	    err=SYNTAX_ERROR;
 	    break;
 	  }
 	  pos_delim=search(')',now,rest);
 	  strncpy(operands[i],now,pos_delim);
+	  operands[i][pos_delim]=0;
 	  instr_read.operands[i]=get_operand(operands[i],7,pc,instr_read.opcode);
 	  if(instr_read.operands[i]==SYNTAX_ERROR){
 	    err=SYNTAX_ERROR;
@@ -659,16 +781,19 @@ int readline(int fd,Instr_list *instr_l){
     if(step==0){
       /*step 0*/
       lseek(fd,0,SEEK_SET);
-      labels=(Label*)malloc((colons+1)*sizeof(Label));
-      linker=(Label*)malloc(links*sizeof(Label));
-      n_label=colons+1;
+      n_label=colons+1+NUM_SIM_SYMBOLS;
       n_linker=links;
+      labels=(Label*)malloc(n_label*sizeof(Label));
+      linker=(Label*)malloc(links*sizeof(Label));
       colons=0;
     }else if(step==1){
       /*step 1*/
       lseek(fd,0,SEEK_SET);
       strcpy(labels[colons].name,"SYS_EXIT");
       labels[colons].pc=l;
+      labels[colons].type=SECTION_TEXT;
+      colons++;
+      add_symbols(labels,n_label,&colons);
       if(output_instr_file!=NULL){
 	print_labels(labels,n_label,output_instr_file);
       }
@@ -679,13 +804,6 @@ int readline(int fd,Instr_list *instr_l){
 	  fprintf(stderr,"Warning: unknown global label '%s'\n",linker[links].name);
 	}
       }
-      j_ep.opcode=0;
-      j_ep.operands[0]=0;
-      j_ep.operands[1]=0;
-      j_ep.operands[2]=0;
-      j_ep.operands[3]=0;
-      list_push(instr_l,j_ep);
-      offset++;
       mem=0;
       offset+=convert_data(prepare,&mem);
       if(mem!=0){

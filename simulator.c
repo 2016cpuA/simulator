@@ -14,14 +14,16 @@ extern int get_pc(Label *labels,char *name_label);
 /*assemble.cに定義*/
 extern int make_code(int out_fd,Instruct *instr,int n);
 
-#define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++){ (sim).reg[_i]=0; (sim).freg[_i]=0;}(sim).pc=0;} while(0);
+#define Sim_Init(sim) int _i; (sim).mem=(char*)malloc(MEMSIZE*sizeof(char));do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++){ (sim).reg[_i]=0; (sim).freg[_i]=0;}(sim).pc=0;} while(0);
+#define Sim_fin(sim) do{ free((sim).mem);} while(0);
+
 #define Is_break(opcode) ((opcode)&_BREAK)
 #define Clear_break(opcode) opcode=((opcode)&MASK_OP_FUN)
 #define Set_break(opcode) opcode=((opcode)|_BREAK)
 /*オプションから受け取った変数*/
-int iter_max,debug,execute;
+int debug,execute;
 int binary_output;
-
+long long int iter_max;
 void print_regs(Simulator sim) {
   int i;
   fprintf(stderr, "GPRs:\n");
@@ -46,7 +48,9 @@ int simulation(Instruct *instr, int n){
   Simulator sim;
   Instruct now;
   int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
-  int instr_type,clocks=0;
+  int instr_type;
+  long long int clocks=0;
+  int flag=0;
   Sim_Init(sim);
   /*simulator実行部分*/
   fprintf(stderr,"Execution started.\n");
@@ -68,25 +72,32 @@ int simulation(Instruct *instr, int n){
     /*EXECUTE*/
     switch(instr_type){
       case TYPE_R: 
-      (*instr_r)(&sim,op[0],op[1],op[2],op[3]);
+      flag=(*instr_r)(&sim,op[0],op[1],op[2],op[3]);
       break;
       case TYPE_I:
-      (*instr_i)(&sim,op[0],op[1],op[2]);
+      flag=(*instr_i)(&sim,op[0],op[1],op[2]);
       break;
       case TYPE_J:
-      (*instr_j)(&sim,op[0]);
+      flag=(*instr_j)(&sim,op[0]);
+      break;
+    }
+    if(flag<0){
       break;
     }
     clocks++;
   }
+  fflush(stdout);
   if(clocks>=iter_max){
     fprintf(stderr,"Execution stopped; too long operation.\n");
+  }else if(flag<0){
+    fprintf(stderr,"Fatal error occurred.\n");
   }else{
     fprintf(stderr,"Execution finished.\n");
   }
   print_regs(sim);
-  fprintf(stderr,"clocks: %d\n",clocks);
+  fprintf(stderr,"clocks: %lld\n",clocks);
   free(instr);
+  Sim_fin(sim);
   return 0;
 }    
 
@@ -95,7 +106,8 @@ int step_simulation(Instruct *instr, int n) {
   Simulator sim;
   Instruct now;
   int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
-  int instr_type,clocks=0,stop=0;
+  int instr_type,stop=0,breaker=0;
+  long long int clocks=0;
   int ch;
   int l = 0;//何行先にブレークポイントをセットしたいか
   int b = 0;//何行目にブレークポイントをセットしたいか
@@ -108,10 +120,10 @@ int step_simulation(Instruct *instr, int n) {
     /*FETCH*/
     now=instr[sim.pc];
     stop = Is_break(now.opcode);
-    if (stop || (flag == STEP)) {
+    if (stop || (flag == STEP)||clocks==0) {
       fprintf(stderr, "STEP No.%d.\n", sim.pc);
       print_regs(sim);
-      fprintf(stderr, "clocks: %d\n", clocks);
+      fprintf(stderr, "clocks: %lld\n", clocks);
       fprintf(stderr, "next instruct: ");
       print_instr(instr[sim.pc], stderr);
       fprintf(stderr,"\n");
@@ -156,22 +168,32 @@ int step_simulation(Instruct *instr, int n) {
     /*命令を実行*/
     switch (instr_type) {
       case TYPE_R: 
-        (*instr_r)(&sim,op[0],op[1],op[2],op[3]);
+        breaker=(*instr_r)(&sim,op[0],op[1],op[2],op[3]);
       break;
       case TYPE_I:
-        (*instr_i)(&sim,op[0],op[1],op[2]);
+        breaker=(*instr_i)(&sim,op[0],op[1],op[2]);
       break;
       case TYPE_J:
-        (*instr_j)(&sim,op[0]);
+        breaker=(*instr_j)(&sim,op[0]);
       break;
     }
+    if(breaker<0){
+      break;
+    }
+
     clocks++;
   }
-
-  fprintf(stderr,"Execution finished.\n");
+  if(clocks>=iter_max){
+    fprintf(stderr,"Execution stopped; too long operation.\n");
+  }else if(flag<0){
+    fprintf(stderr,"Fatal error occurred.\n");
+  }else{
+    fprintf(stderr,"Execution finished.\n");
+  }
   print_regs(sim);
-  fprintf(stderr,"clocks: %d\n",clocks);
+  fprintf(stderr,"clocks: %lld\n",clocks);
   free(instr);
+  Sim_fin(sim);
   return 0;
 }
 

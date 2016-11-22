@@ -1,12 +1,12 @@
 #ifndef SIM_H
 
 #define SIM_H
-#define MEMSIZE 65536
+#define MEMSIZE 2097148
 #define REGS 32
 #define FREGS 32
 
 typedef struct simulator {
-  char mem[MEMSIZE];
+  char *mem;
   int reg[REGS];
   float freg[FREGS];
   int pc;
