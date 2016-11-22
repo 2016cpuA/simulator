@@ -11,7 +11,7 @@
 /*simulator.c*/
 extern int _sim(int program_fd,char* output_instr_file_name,int out_binary_fd);
 extern int make_code(int out_fd,Instruct *instr,int n);
-extern int iter_max;
+extern long long int iter_max;
 extern int debug;
 extern int execute;
 extern int binary_output;
@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
       strcpy(binary_file_name,optarg);
       break;
     case 'I':
-      iter_max=atoi(optarg);
+      iter_max=atoll(optarg);
       break;
     case 's': /*statistical info*/
       statistics = 1;
