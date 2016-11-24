@@ -245,7 +245,7 @@ void sim_libs(Simulator *sim,int label){
     sim->freg[1]=(sim->freg[1])*(sim->freg[1]);
     break;
   case LIB_F_LESS:
-    sim->reg[1]=(sim->freg[1]<sim->freg[1]);
+    sim->reg[1]=(sim->freg[1]<sim->freg[2]);
     break;
   case LIB_F_HALF:
     sim->freg[1]=(sim->freg[1])*0.5;
