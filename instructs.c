@@ -97,6 +97,8 @@ int get_instr(char *name){
     return NOP;
   }else if(!(x^0x6d6f7665L)|!(x^0x4d4f5645L)){
     return MOVE;
+  }else if(!(x^0x68616c74L)|!(x^0x48414c54L)){
+    return HALT;
   }else{
     printf("Error: unknown instruction '%s'\n",name);
     return UNKNOWN;
@@ -449,8 +451,12 @@ int instr_j(Simulator *sim,int instr_index) {
   if(instr_index>0x1000000){
     sim_libs(sim,instr_index);
     sim->pc=sim->reg[31];
+    return 0;
   }else{
-    sim->pc =  instr_index ;
+    if(sim->pc==instr_index)
+      return 65536;
+    else
+      sim->pc =  instr_index ;
   }
   return 0;
 }

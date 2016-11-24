@@ -4,6 +4,7 @@
 #define MEMSIZE 2097148
 #define REGS 32
 #define FREGS 32
+#define NUM_SIM_SYMBOLS 27
 
 typedef struct simulator {
   char *mem;

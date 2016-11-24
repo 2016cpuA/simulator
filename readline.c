@@ -201,6 +201,15 @@ int convert_mnemonic(Instr_list *instr_l,int pc){
       ins.operands[3]=0;
       list_push(instr_l,ins);
       break;
+    case HALT:
+      dpc=1;
+      ins.opcode=J;
+      ins.operands[0]=pc+offset;
+      ins.operands[1]=0;
+      ins.operands[2]=0;
+      ins.operands[3]=0;
+      list_push(instr_l,ins);
+      break;
     }
   }
   return dpc;
@@ -294,7 +303,7 @@ int which_directive(char *opcode){
 }
 
 /*特殊関数へのラベル(実態はシンボル)*/
-#define NUM_SIM_SYMBOLS 27
+/*何か追加したら、simulator.hのNUM_SIM_SYMBOLSの値をシミュレータ組み込み関数の数に変更する*/
 void add_symbols(Label *labels,int max,int *i){  
   strcpy(labels[*i].name,"min_caml_read_byte");
   labels[*i].pc=LIB_RBYTE;

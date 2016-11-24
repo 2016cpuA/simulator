@@ -37,7 +37,8 @@
 #define DIV_S 0x44000003
 #define C_EQ_S 0x4400003C
 #define C_LE_S 0x4400003D
-#define C_LT_S 0x4400003E 
+#define C_LT_S 0x4400003E
+
 #define FMT_S 0
 /*mnemonics*/
 /* 変換後の命令数を取り出すためのマスク */
@@ -46,6 +47,9 @@
 #define Is_mnemonic(opcode)  ((opcode)&0x00000F00)
 /*このニーモニックの長さは?*/
 #define Len_mnemonic(opcode) ((((opcode)&0x00000F00)>>8)&15)
+/*halt 
+  j 'pc に変換される */
+#define HALT 0xFC00013F
 /*nop 
   sll %r0,%r0,%r0に変換される*/
 #define NOP 0x00000100

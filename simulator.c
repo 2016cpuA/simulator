@@ -63,11 +63,11 @@ static inline void print_time(double t_sec){
 }
 
 #define NUM_INSTR 35
-#define NUM_LIBFUNS 27
+#define NUM_INSTR_LIBFUN NUM_INSTR+NUM_SIM_SYMBOLS
 
-static inline void stat_init(int index[NUM_INSTR],char opcodes[NUM_INSTR][10]){
+static inline void stat_init(int index[NUM_INSTR_LIBFUN],char opcodes[NUM_INSTR_LIBFUN][32]){
   int i;
-  for (i = 0; i < NUM_INSTR; i++) index[i] = i;
+  for (i = 0; i < NUM_INSTR_LIBFUN; i++) index[i] = i;
   strcpy(opcodes[0], "J");
   strcpy(opcodes[1], "JAL");
   strcpy(opcodes[2], "MOVE");
@@ -102,14 +102,90 @@ static inline void stat_init(int index[NUM_INSTR],char opcodes[NUM_INSTR][10]){
   strcpy(opcodes[31], "C_LE_S");
   strcpy(opcodes[32], "C_LT_S");
   strcpy(opcodes[33], "IN");
-  strcpy(opcodes[34], "OUT"); 
+  strcpy(opcodes[34], "OUT");
+  strcpy(opcodes[NUM_INSTR], "print_char");
+  strcpy(opcodes[NUM_INSTR+1], "print_int");
+  strcpy(opcodes[NUM_INSTR+2], "print_float");
+  strcpy(opcodes[NUM_INSTR+3], "print_newline");
+  strcpy(opcodes[NUM_INSTR+4], "read_byte");
+  strcpy(opcodes[NUM_INSTR+5], "read_int");
+  strcpy(opcodes[NUM_INSTR+6], "read_float");
+  strcpy(opcodes[NUM_INSTR+7], "sin");
+  strcpy(opcodes[NUM_INSTR+8], "cos");
+  strcpy(opcodes[NUM_INSTR+9], "atan");
+  strcpy(opcodes[NUM_INSTR+10], "float_of_int");
+  strcpy(opcodes[NUM_INSTR+11], "int_of_float");
+  strcpy(opcodes[NUM_INSTR+12], "floor");
+  strcpy(opcodes[NUM_INSTR+13], "sqrt");
+  strcpy(opcodes[NUM_INSTR+14], "fabs");
+  strcpy(opcodes[NUM_INSTR+15], "create_array");
+  strcpy(opcodes[NUM_INSTR+16], "create_array_float");
+  strcpy(opcodes[NUM_INSTR+17], "fiszero");
+  strcpy(opcodes[NUM_INSTR+18], "fispos");
+  strcpy(opcodes[NUM_INSTR+19], "fisneg");
+  strcpy(opcodes[NUM_INSTR+20], "fneg");
+  strcpy(opcodes[NUM_INSTR+21], "fsqr");
+  strcpy(opcodes[NUM_INSTR+22], "fless");
+  strcpy(opcodes[NUM_INSTR+23], "fhalf");
 }
-static inline void stat_do(Instruct ins,long long int occur[NUM_INSTR]){ 
+static inline void stat_libfun(int libfun,long long int occur[NUM_INSTR_LIBFUN]){
+  switch (libfun){
+  case LIB_WBYTE:
+    occur[NUM_INSTR+0]++;break;
+  case LIB_WINT:
+    occur[NUM_INSTR+1]++;break;
+  case LIB_WFLOAT:
+    occur[NUM_INSTR+2]++;break;
+  case LIB_NLINE:
+    occur[NUM_INSTR+3]++;break;
+  case LIB_RBYTE:
+    occur[NUM_INSTR+4]++;break;
+  case LIB_RINT:
+    occur[NUM_INSTR+5]++;break;
+  case LIB_RFLOAT:
+    occur[NUM_INSTR+6]++;break;
+  case LIB_SIN:
+    occur[NUM_INSTR+7]++;break;
+  case LIB_COS:
+    occur[NUM_INSTR+8]++;break;
+  case LIB_ATAN:
+    occur[NUM_INSTR+9]++;break;
+  case LIB_ITOF:
+    occur[NUM_INSTR+10]++;break;
+  case LIB_FTOI:
+    occur[NUM_INSTR+11]++;break;
+  case LIB_FLOOR:
+    occur[NUM_INSTR+12]++;break;
+  case LIB_SQRT:
+    occur[NUM_INSTR+13]++;break;
+  case LIB_FABS:
+    occur[NUM_INSTR+14]++;break;
+  case LIB_CR_ARRAY:
+    occur[NUM_INSTR+15]++;break;
+  case LIB_CR_ARRAY_F:
+    occur[NUM_INSTR+16]++;break;
+  case LIB_F_IS_0:
+    occur[NUM_INSTR+17]++;break;
+  case LIB_F_IS_POS:
+    occur[NUM_INSTR+18]++;break;
+  case LIB_F_IS_NEG:
+    occur[NUM_INSTR+19]++;break;
+  case LIB_F_NEG:
+    occur[NUM_INSTR+20]++;break;
+  case LIB_F_SQR:
+    occur[NUM_INSTR+21]++;break;
+  case LIB_F_LESS:
+    occur[NUM_INSTR+22]++;break;
+  case LIB_F_HALF:
+    occur[NUM_INSTR+23]++;break;
+  }
+}
+static inline void stat_do(Instruct ins,long long int occur[NUM_INSTR_LIBFUN]){ 
   switch (ins.opcode){
   case J:
-    occur[0]++;break;
+    occur[0]++; if(ins.operands[0]>0x1000000) stat_libfun(ins.operands[0],occur);break;
   case JAL: 
-    occur[1]++;break;
+    occur[1]++;if(ins.operands[0]>0x1000000) stat_libfun(ins.operands[0],occur);break;
   case MOVE:
     occur[2]++;break;
   case ADDI:
@@ -180,9 +256,10 @@ static inline void stat_do(Instruct ins,long long int occur[NUM_INSTR]){
     break;
   }
 }
-static inline void stat_fin(long long int occur[NUM_INSTR],int index[NUM_INSTR],char opcodes[NUM_INSTR][10]){
-  int i,j,tmp1,tmp2;
-  long long int n_instr=0;
+
+static inline void stat_fin(long long int occur[NUM_INSTR_LIBFUN],int index[NUM_INSTR_LIBFUN],char opcodes[NUM_INSTR_LIBFUN][32]){
+  int i,j,tmp1;
+  long long int n_instr=0,tmp2;
   /*並び替え*/
   for (i = 0; i < NUM_INSTR; i++) {
     for (j = i + 1; j < NUM_INSTR; j++) {
@@ -196,9 +273,21 @@ static inline void stat_fin(long long int occur[NUM_INSTR],int index[NUM_INSTR],
       }
     }
   }
+  for (i=NUM_INSTR; i < NUM_INSTR_LIBFUN; i++) {
+    for (j = i + 1; j < NUM_INSTR_LIBFUN; j++) {
+      if (occur[i] <= occur[j]) {
+        tmp1 = index[i];
+        tmp2 = occur[i];
+        index[i] = index[j];
+        occur[i] = occur[j];
+        index[j] = tmp1;
+        occur[j] = tmp2;
+      }
+    }
+  }
   /*出力*/
   fprintf(stderr,"\n---------------------\n   statistical info\n---------------------\n");
-  
+  fprintf(stderr,"instructs::\n");
   for (i = 0; i < NUM_INSTR; i++) {
     if(occur[i]!=0)
       fprintf(stderr,"%8s: %10lld  times\n", opcodes[index[i]], occur[i]);
@@ -206,7 +295,17 @@ static inline void stat_fin(long long int occur[NUM_INSTR],int index[NUM_INSTR],
       break;
     n_instr+=occur[i];
   }
-  fprintf(stderr,"\n%8s: %10lld instructs\n\n","total",n_instr);
+  fprintf(stderr,"total: %10lld instructs\n\n",n_instr);
+  fprintf(stderr,"library functions:\n");
+  n_instr=0;
+  for (i = NUM_INSTR; i < NUM_INSTR_LIBFUN; i++) {
+    if(occur[i]!=0)
+      fprintf(stderr,"%20s: %10lld  times\n", opcodes[index[i]], occur[i]);
+    else
+      break;
+     n_instr+=occur[i];
+  }
+  fprintf(stderr,"total: %10lld functions\n\n",n_instr);
 }
 		    
 
@@ -217,9 +316,9 @@ int simulation(Instruct *instr, int n){
   int instr_type;
   long long int clocks=0;
   int flag=0;
-  long long int occur[NUM_INSTR] = {};
-  char opcodes[NUM_INSTR][10];
-  int index[NUM_INSTR];
+  long long int occur[NUM_INSTR_LIBFUN] = {};
+  char opcodes[NUM_INSTR_LIBFUN][32];
+  int index[NUM_INSTR_LIBFUN];
   struct timeval t0,t;
   if(statistics) 
     stat_init(index,opcodes);
@@ -254,12 +353,12 @@ int simulation(Instruct *instr, int n){
       flag=(*instr_j)(&sim,op[0]);
       break;
     }
-    if(flag<0){
-      break;
-    }
     if(statistics) 
       stat_do(now,occur);
     clocks++;
+    if(flag<0||flag==65536){
+      break;
+    }
   }
   fflush(stdout);
   gettimeofday(&t,NULL);
@@ -288,13 +387,14 @@ int step_simulation(Instruct *instr, int n) {
   int instr_type,stop=0,breaker=0;
   long long int clocks=0;
   int ch;
-  long long int occur[NUM_INSTR] = {};
-  char opcodes[NUM_INSTR][10];
-  int index[NUM_INSTR];
+  long long int occur[NUM_INSTR_LIBFUN] = {};
+  char opcodes[NUM_INSTR_LIBFUN][32];
+  int index[NUM_INSTR_LIBFUN];
   int l = 0;//何行先にブレークポイントをセットしたいか
   int b = 0;//何行目にブレークポイントをセットしたいか
   enum Flag flag=CONTINUE;
   Sim_Init(sim);
+  fprintf(stderr,"%d\n",NUM_INSTR_LIBFUN);
   if(statistics) 
     stat_init(index,opcodes);
   /*simulator実行部分*/
@@ -360,16 +460,16 @@ int step_simulation(Instruct *instr, int n) {
         breaker=(*instr_j)(&sim,op[0]);
       break;
     }
-    if(breaker<0){
-      break;
-    }
     if(statistics) 
       stat_do(now,occur);
     clocks++;
+    if(breaker<0||breaker==65536){
+      break;
+    }
   }
   if(clocks>=iter_max){
     fprintf(stderr,"Execution stopped; too long operation.\n");
-  }else if(flag<0){
+  }else if(breaker<0){
     fprintf(stderr,"Fatal error occurred.\n");
   }else{
     fprintf(stderr,"Execution finished.\n");
