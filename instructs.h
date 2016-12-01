@@ -82,6 +82,7 @@
 #define LIB_WBYTE 0x2000000-9
 #define LIB_WINT 0x2000000-10
 #define LIB_WFLOAT 0x2000000-11
+#define LIB_WFLOATE 0x2000000-12
 /*write_*関数*/
 /*%r1,または%f0の値を対応した形式で標準出力に出力*/
 #define LIB_SIN 0x2000000-17
@@ -241,24 +242,24 @@ int instr_fclts(Simulator *sim,int fmt,int ft,int fs,int rd);
 
 /*アセンブラの命令名を読み取るための関数
   実体はinstructs.cに記述*/
-int get_instr(char *name);
+unsigned int get_instr(char *name);
 /*命令の識別番号からアセンブラの命令名を読み取り、指定したファイルストリームに出力*/
 void print_instr(Instruct instr,FILE* out_file);
 
 /*以下はfetch.cに定義されている*/
 /*命令の形式を取得する関数*/
-int judge_type(int opcode);
+int judge_type(unsigned int opcode);
 #define TYPE_R 0x10
 #define TYPE_I 0x20
 #define TYPE_J 0x30
-#define UNKNOWN_OP -1
+#define UNKNOWN_OP 0xffffffff
 
 /*Instruct型のデータから、実行する関数とその引数を返す関数*/
 int fetch_r(int (**instr)(Simulator*,int,int,int,int),int op[4],Instruct ins);
 int fetch_i(int (**instr)(Simulator*,int,int,int),int op[4],Instruct ins);
 int fetch_j(int (**instr)(Simulator*,int),int op[4],Instruct ins);
 /*バイナリコードから、命令の種類と引数を取り出す関数*/
-int code_fetch(int code,int *opcode,int op[4]);
+int code_fetch(int code,unsigned int *opcode,int op[4]);
 
 /*命令をバイナリに変換する関数*/
 int make_code_r(int opcode,int rs,int rt,int rd,int sa);

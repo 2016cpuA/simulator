@@ -304,7 +304,7 @@ int which_directive(char *opcode){
 
 /*特殊関数へのラベル(実態はシンボル)*/
 /*何か追加したら、simulator.hのNUM_SIM_SYMBOLSの値をシミュレータ組み込み関数の数に変更する*/
-void add_symbols(Label *labels,int max,int *i){  
+void add_symbols(Label *labels,int *i){  
   strcpy(labels[*i].name,"min_caml_read_byte");
   labels[*i].pc=LIB_RBYTE;
   labels[*i].type=0;
@@ -327,6 +327,10 @@ void add_symbols(Label *labels,int max,int *i){
   *i=*i+1;
   strcpy(labels[*i].name,"min_caml_print_float");
   labels[*i].pc=LIB_WFLOAT;
+  labels[*i].type=0;
+  *i=*i+1;
+  strcpy(labels[*i].name,"min_caml_print_float_e");
+  labels[*i].pc=LIB_WFLOATE;
   labels[*i].type=0;
   *i=*i+1;
   strcpy(labels[*i].name,"min_caml_print_newline");
@@ -538,7 +542,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
       free(buf_cp);
       return EMPTY_LINE;
     }else{
-      if((instr_read.opcode=get_instr(opcode))==-1) err=UNKNOWN_INSTRUCT;
+      if((instr_read.opcode=get_instr(opcode))==0xffffffff) err=UNKNOWN_INSTRUCT;
       if(is_break){
 	(instr_read.opcode)|= _BREAK ;
 	is_break=0;
@@ -802,7 +806,7 @@ int readline(int fd,Instr_list *instr_l){
       labels[colons].pc=l;
       labels[colons].type=SECTION_TEXT;
       colons++;
-      add_symbols(labels,n_label,&colons);
+      add_symbols(labels,&colons);
       if(output_instr_file!=NULL){
 	print_labels(labels,n_label,output_instr_file);
       }

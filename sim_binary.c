@@ -37,7 +37,8 @@ int simulation_bin(int *bin, int n){
   Instruct ins;
   int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4]={0,0,0,0};
   int flag=0;
-  int instr_type,opcode;
+  int instr_type;
+  unsigned int opcode;
   long long int clocks=0;
   Sim_Init(sim);
   /*simulator実行部分*/
@@ -45,7 +46,7 @@ int simulation_bin(int *bin, int n){
   while(sim.pc<n&&clocks<iter_max){
     /*FETCH*/
     now=bin[sim.pc];
-    if(now==0xffffffff)
+    if(!(now^0xffffffff))
       break;
     code_fetch(now,&opcode,op);
     instr_type=judge_type(opcode);
@@ -189,7 +190,7 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
     bin=(int*)malloc(n*sizeof(int));
     read(program_fd,bin,n<<2);
     for(i=0;i<n;i++){
-      if(bin[i]!=0xffffffff){
+      if(bin[i]^0xffffffff){
 	tmp=bin[i];
 	bin[i]=(((tmp&0xFF000000)>>24))|(((tmp&0xFF0000)>>16)<<8)|(((tmp&0xFF00)>>8)<<16)|((tmp&0xFF)<<24);
       }else{

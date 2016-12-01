@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include "simulator.h"
 #include "instructs.h"
+#include "queue.h"
 #include <sys/time.h>
 /*readline.cに定義*/
 extern Instruct *load_instruct(int fd,char* output_instr_file_name,int *size);
@@ -308,7 +309,9 @@ static inline void stat_fin(long long int occur[NUM_INSTR_LIBFUN],int index[NUM_
   fprintf(stderr,"total: %10lld functions\n\n",n_instr);
 }
 		    
-
+static inline int is_float(unsigned int opcode){
+  return ((opcode&0xFC000000)==0x44000000)||((opcode&0xFC000000)==0xc4000000);
+}
 int simulation(Instruct *instr, int n){
   Simulator sim;
   Instruct now;
@@ -328,6 +331,14 @@ int simulation(Instruct *instr, int n){
   gettimeofday(&t0,NULL);
   while(sim.pc<n&&clocks<iter_max){
     /*FETCH*/
+    if(sim.pc<0){
+      fprintf(stderr,"Error: invalid instruction address %d.\n",sim.pc);
+      fprintf(stderr,"Maybe caused by instruction");
+      print_instr(now, stderr);
+      fprintf(stderr,"\n");
+      flag=-1;
+      break;
+    }
     now=instr[sim.pc];
     instr_type=judge_type(now.opcode);
     switch(instr_type){
@@ -390,8 +401,11 @@ int step_simulation(Instruct *instr, int n) {
   long long int occur[NUM_INSTR_LIBFUN] = {};
   char opcodes[NUM_INSTR_LIBFUN][32];
   int index[NUM_INSTR_LIBFUN];
+  Queue_int prev_access[REGS]={};
+  Queue_int prev_access_f[REGS]={};
   int l = 0;//何行先にブレークポイントをセットしたいか
   int b = 0;//何行目にブレークポイントをセットしたいか
+  int flag_float;
   enum Flag flag=CONTINUE;
   Sim_Init(sim);
   fprintf(stderr,"%d\n",NUM_INSTR_LIBFUN);
@@ -401,6 +415,14 @@ int step_simulation(Instruct *instr, int n) {
   fprintf(stderr,"Execution started.\n");
   while (sim.pc < n && clocks<iter_max){
     /*FETCH*/
+    if(sim.pc<0){
+      fprintf(stderr,"Error: invalid instruction address %d.\n",sim.pc);
+      fprintf(stderr,"Maybe caused by instruction ");
+      print_instr(now, stderr);
+      fprintf(stderr,"\n");
+      flag=-1;
+      break;
+    }
     now=instr[sim.pc];
     stop = Is_break(now.opcode);
     if (stop || (flag == STEP)||clocks==0) {
@@ -436,6 +458,7 @@ int step_simulation(Instruct *instr, int n) {
 
     /*実行する関数とその引数をfetch*/
     instr_type=judge_type(now.opcode);
+    flag_float=is_float(now.opcode);
     switch (instr_type) {
       case TYPE_R: 
         fetch_r(&instr_r,op,now);
@@ -447,18 +470,24 @@ int step_simulation(Instruct *instr, int n) {
         fetch_j(&instr_j,op,now);
       break;
     }
-
+    
     /*命令を実行*/
     switch (instr_type) {
-      case TYPE_R: 
+      case TYPE_R:
+	if(flag_float){
+	  qi_enqueue(&prev_access_f[op[2]],sim.pc);
+	}else{
+	  qi_enqueue(&prev_access[op[2]],sim.pc);
+	}
         breaker=(*instr_r)(&sim,op[0],op[1],op[2],op[3]);
-      break;
+	break;
       case TYPE_I:
+        qi_enqueue(&prev_access[op[1]],sim.pc);
         breaker=(*instr_i)(&sim,op[0],op[1],op[2]);
-      break;
+	break;
       case TYPE_J:
         breaker=(*instr_j)(&sim,op[0]);
-      break;
+	break;
     }
     if(statistics) 
       stat_do(now,occur);
@@ -471,6 +500,15 @@ int step_simulation(Instruct *instr, int n) {
     fprintf(stderr,"Execution stopped; too long operation.\n");
   }else if(breaker<0){
     fprintf(stderr,"Fatal error occurred.\n");
+    if(breaker+64<REGS&&flag_float){
+      fprintf(stderr,"Maybe caused by instruction ");
+      print_instr(instr[qi_gettail(&prev_access_f[breaker+64])], stderr);
+      fprintf(stderr," (index %d)\n",qi_gettail(&prev_access_f[breaker+64]));
+    }else if(breaker+64<REGS){
+      fprintf(stderr,"Maybe caused by instruction ");
+      print_instr(instr[qi_gettail(&prev_access[breaker+64])], stderr);
+      fprintf(stderr," (index %d)\n",qi_gettail(&prev_access[breaker+64]));
+    }
   }else{
     fprintf(stderr,"Execution finished.\n");
   }

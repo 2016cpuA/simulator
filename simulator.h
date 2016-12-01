@@ -4,7 +4,7 @@
 #define MEMSIZE 2097148
 #define REGS 32
 #define FREGS 32
-#define NUM_SIM_SYMBOLS 27
+#define NUM_SIM_SYMBOLS 28
 
 typedef struct simulator {
   char *mem;
@@ -14,7 +14,7 @@ typedef struct simulator {
 } Simulator;
 
 typedef struct instruct {
-  int opcode;
+  unsigned int opcode;
   int operands[4];
 } Instruct;
 
@@ -24,6 +24,17 @@ typedef struct instr_list {
   struct instr_list *next;
   struct instr_list *back;
 } Instr_list;
+
+union fi{
+  float f;
+  int i;
+};
+typedef struct {
+  int pc;
+  int addr;
+  union fi before;
+  union fi after;
+}Mem_hist;
 
 
 /*ラベル構造体の定義*/

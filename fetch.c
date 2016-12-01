@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-inline int judge_type(int opcode){
+inline int judge_type(unsigned int opcode){
   switch(opcode&MASK_OP_FUN){
   case J:
   case JAL: return TYPE_J;break;
@@ -218,7 +218,7 @@ inline int fetch_j(int (**instr)(Simulator*,int),int op[4],Instruct ins){
   return 0;
 }
 
-int code_fetch(int code, int *opcode, int op[4]) {
+int code_fetch(int code,unsigned int *opcode, int op[4]) {
   int type;
   if(Fetch_opcode(code)==0||Fetch_opcode(code)==0x11)
     *opcode=MASK_OP_FUN&code;

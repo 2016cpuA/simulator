@@ -11,7 +11,7 @@ FILE *output_file;
 
 int max_addr=0;
 
-int get_instr(char *name){
+unsigned int get_instr(char *name){
   long long int x=0;
   int i;
   int max = strlen(name);
@@ -175,6 +175,9 @@ void sim_libs(Simulator *sim,int label){
   case LIB_WFLOAT: 
     fprintf(output_file,"%f",(sim->freg[1]));
     break;
+  case LIB_WFLOATE: 
+    fprintf(output_file,"%e",(sim->freg[1]));
+    break;
   case LIB_NLINE: 
     fprintf(output_file,"\n");
     break;
@@ -294,7 +297,12 @@ int instr_slt(Simulator *sim,int rs,int rt,int rd,int sa) {
   return 0; 
 }
 int instr_jr(Simulator *sim,int rs,int rt,int rd,int sa) {
-  sim->pc = sim->reg[rt];
+  if(sim->reg[rt]<0){
+    fprintf(stderr,"Error(jr; pc=%d): invalid instruction index %d\n",sim->pc,sim->reg[rt]);
+    return rt-64;
+  }else{
+    sim->pc = sim->reg[rt];
+  }
   return 0;
 }
 
@@ -318,7 +326,7 @@ int instr_xor(Simulator *sim,int rs,int rt,int rd,int sa) {
  
 int instr_sll(Simulator *sim,int rs,int rt,int rd,int sa) {
   if(rs!=0||rt!=0||rd!=0||sa!=0){
-    sim->reg[rd] = (sim->reg[rt]) << sa;
+    sim->reg[rd] =(int)((unsigned int)(sim->reg[rt])) << sa;
   }
   Inc(sim->pc);
   return 0;
@@ -347,15 +355,19 @@ int instr_in(Simulator *sim,int rs,int rt,int rd,int sa){
   char buf[4];
   (sim->pc)++;
   fread(buf, 4, 1, input_file);
-  sim->reg[rd]=((buf[0])<<24)|((buf[1])<<16)|((buf[2])<<8)|((buf[3]));
+  sim->reg[rd]=((int)(buf[0])<<24)|((int)(buf[1])<<16)|((int)(buf[2])<<8)|((int)(buf[3]));
   return 0;
 }
 
 int instr_out(Simulator *sim,int rs,int rt,int rd,int sa){
   char buf[4];
-  buf[0]=
+  int target = sim->reg[rs];
+  buf[0]=(char)(target>>24);
+  buf[1]=(char)((target>>16)&0xff);
+  buf[2]=(char)((target>>8)&0xff);
+  buf[3]=(char)((target)&0xff);
   (sim->pc)++;
-  fwrite(&sim->reg[rs], 4, 1, output_file);
+  fwrite(buf, 4, 1, output_file);
   return 0;
 }
 
@@ -388,13 +400,23 @@ int instr_ori(Simulator *sim,int rs,int rt,int imm) {
 }
 
 int instr_beq(Simulator *sim,int rs,int rt,int offset) {
-  if (sim->reg[rs] == sim->reg[rt]) sim->pc += offset;
-  else Inc(sim->pc);
+  if (sim->reg[rs] == sim->reg[rt]){
+    if (sim->pc+offset<0){
+    fprintf(stderr,"Error(beq; pc=%d): invalid instruction index %d\n",sim->pc,sim->pc+offset);
+    return -1;
+    }else
+      sim->pc += offset;
+  }else Inc(sim->pc);
   return 0;
 }
 
 int instr_bne(Simulator *sim,int rs,int rt,int offset) {
-  if (sim->reg[rs] != sim->reg[rt]) sim->pc += offset;
+  if (sim->reg[rs] != sim->reg[rt])
+    if (sim->pc+offset<0){
+      fprintf(stderr,"Error(bne; pc=%d): invalid instruction index %d\n",sim->pc,sim->pc+offset);
+    return -1;
+    }else
+      sim->pc += offset;
   else Inc(sim->pc);
   return 0;
 }
@@ -440,6 +462,9 @@ int instr_jal(Simulator *sim,int instr_index) {
   if(instr_index>0x1000000){
     sim_libs(sim,instr_index);
     Inc(sim->pc);
+  }else if(instr_index<0){
+    fprintf(stderr,"Error(jal; pc=%d): invalid instruction index %d\n",sim->pc,instr_index);
+    return -1;
   }else{
     sim->reg[31] = (sim->pc) +1;
     sim->pc =  instr_index ;
@@ -452,6 +477,9 @@ int instr_j(Simulator *sim,int instr_index) {
     sim_libs(sim,instr_index);
     sim->pc=sim->reg[31];
     return 0;
+  }else if(instr_index<0){
+    fprintf(stderr,"Error(j; pc=%d): invalid instruction index %d\n",sim->pc,instr_index);
+    return -1;
   }else{
     if(sim->pc==instr_index)
       return 65536;

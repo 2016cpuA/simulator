@@ -1,5 +1,5 @@
 main:
-	SUB %r0,%r0,%r0
-	ADDI %r1,%r0,20
-	ADDI %r2,%r1,40
-	J SYS_EXIT
+	in	%r1
+	sw	%r1,0(%r30)
+	lw	%r2,1(%r30)
+	out	%r2
