@@ -16,7 +16,19 @@ extern int get_pc(Label *labels,char *name_label);
 /*assemble.cに定義*/
 extern int make_code(int out_fd,Instruct *instr,int n);
 
-#define Sim_Init(sim) int _i; (sim).mem=(char*)malloc(MEMSIZE*sizeof(char));do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++){ (sim).reg[_i]=0; (sim).freg[_i]=0;}(sim).pc=0;} while(0);
+static inline void Sim_Init(Simulator *sim) {
+  int _i;
+  (*sim).mem=(char*)malloc(MEMSIZE*sizeof(char));
+  do{
+    for(_i=0;_i<MEMSIZE;_i++)
+      (*sim).mem[_i]=0;
+    for(_i=0;_i<REGS;_i++){
+      (*sim).reg[_i]=0;
+      (*sim).freg[_i]=0;
+    }
+    (*sim).pc=0;
+  } while(0);
+}
 #define Sim_fin(sim) do{ free((sim).mem);} while(0);
 
 #define Is_break(opcode) ((opcode)&_BREAK)
@@ -325,7 +337,7 @@ int simulation(Instruct *instr, int n){
   struct timeval t0,t;
   if(statistics) 
     stat_init(index,opcodes);
-  Sim_Init(sim);
+  Sim_Init(&sim);
   /*simulator実行部分*/
   fprintf(stderr,"Execution started.\n");
   gettimeofday(&t0,NULL);
@@ -390,6 +402,18 @@ int simulation(Instruct *instr, int n){
   return 0;
 }    
 
+static inline void console_help(){
+  fprintf(stderr,"commands\n");
+  fprintf(stderr,"c\tContinue; continue execution.\n");
+  fprintf(stderr,"s\tStep; execute next instruction.\n");
+  fprintf(stderr,"l N\tI don't know what to say;tset breakpoint at 'PC=N+CurrentPC'.\n");
+  fprintf(stderr,"b N\tBreak; set breakpoint at 'PC=N'.\n");
+  fprintf(stderr,"d N\tDelete breakpoint; Delete breakpoint at 'PC=N'.\n");
+  fprintf(stderr,"q\tQuit; quit execution immediately.\n");
+  fprintf(stderr,"r\tRestart; Restart from beginning.\n");
+  fprintf(stderr,"?\thelp; show this message.\n");
+}
+
 enum Flag {STEP,CONTINUE};
 int step_simulation(Instruct *instr, int n) {
   Simulator sim;
@@ -404,10 +428,14 @@ int step_simulation(Instruct *instr, int n) {
   Queue_int prev_access[REGS]={};
   Queue_int prev_access_f[REGS]={};
   int l = 0;//何行先にブレークポイントをセットしたいか
-  int b = 0;//何行目にブレークポイントをセットしたいか
-  int flag_float;
+  int flag_float,signal_go=0;
   enum Flag flag=CONTINUE;
-  Sim_Init(sim);
+  Sim_Init(&sim);
+  int i;
+  for(i=0;i<REGS;i++){
+    qi_init(&prev_access[i]);
+    qi_init(&prev_access[i]);
+  }
   fprintf(stderr,"%d\n",NUM_INSTR_LIBFUN);
   if(statistics) 
     stat_init(index,opcodes);
@@ -432,30 +460,59 @@ int step_simulation(Instruct *instr, int n) {
       fprintf(stderr, "next instruct: ");
       print_instr(instr[sim.pc], stderr);
       fprintf(stderr,"\n");
-
-      while ((ch = getchar()) != EOF) {
-        if (ch == '\n') break;
-        if (ch == 's') flag = STEP;
-        else if (ch == 'c') flag = CONTINUE;
+      signal_go=0;
+      while ((ch = getchar()) != EOF&&!signal_go) {
+        if (ch == '\n'); 
+        else if (ch == 's') {
+	  flag = STEP;
+	  signal_go=1;
+	}
+        else if (ch == 'c'){
+	  flag = CONTINUE;
+	  signal_go=1;
+	}
         else if (ch == 'l') {//l行先にブレークポイントをセットする（l行分実行する）
           scanf("%d", &l);
           Set_break(instr[sim.pc + l].opcode);
-          flag = CONTINUE;
+          fprintf(stderr,"Break point set at %d.\n",l);
         }
-        else if (ch == 'b') {//b行目にブレークポイントをセットする（第b行まで実行する）
-          scanf("%d", &b);
-          Set_break(instr[b].opcode);
-          flag = CONTINUE;
+        else if (ch == 'b') {//l行目にブレークポイントをセットする（第b行まで実行する）
+          scanf("%d", &l);
+          Set_break(instr[l].opcode);
+          fprintf(stderr,"Break point set at %d.\n",l);
         }
+	else if (ch == 'd') {//l行目のブレークポイントを消去する
+          scanf("%d", &l);
+          Clear_break(instr[l].opcode);
+          fprintf(stderr,"Break point at %d deleted.\n",l);
+        }
+	else if (ch == 'q'){ //終了
+          breaker=1;
+	  signal_go=1;
+	}
+	else if (ch == 'r'){//再実行
+	  Sim_fin(sim);
+	  Sim_Init(&sim);
+	  for(i=0;i<REGS;i++){
+	    qi_init(&prev_access[i]);
+	    qi_init(&prev_access[i]);
+	  }
+	  clocks=0;
+	  signal_go=1;
+	  now=instr[sim.pc];
+	}
+	else if (ch == '?'){
+	  console_help();
+	}
         else fprintf(stderr, "sim: Unknown command\n");
       }
 
       if(ch == EOF) {
        fprintf(stderr,"step simulation cancelled.\n");
-       break;
+       breaker=1;
       } 
     }
-
+    if(breaker!=0) break;
     /*実行する関数とその引数をfetch*/
     instr_type=judge_type(now.opcode);
     flag_float=is_float(now.opcode);
