@@ -20,7 +20,7 @@ extern void print_regs(Simulator sim);
 /*readline.c*/
 Label *labels;
 int n_label;
-void print_code(FILE *output_instr_file, int *bin, int n){
+void print_code(FILE *output_instr_file, unsigned int *bin, int n){
   int i,op[4]={0,0,0,0};
   Instruct ins;
   fprintf(output_instr_file,"pc\tcode    \tinstr\top1\top2\top3\top4\n");
@@ -31,7 +31,7 @@ void print_code(FILE *output_instr_file, int *bin, int n){
     fprintf(output_instr_file,"\t%d\t%d\t%d\t%d\n",op[0],op[1],op[2],op[3]);
   } 
 }
-int simulation_bin(int *bin, int n){
+int simulation_bin(unsigned int *bin, int n){
   Simulator sim;
   int now;
   Instruct ins;
@@ -170,10 +170,16 @@ int step_simulation_bin(Instruct *instr, int n) {
   free(instr);
   return 0;
 }
+
+static inline unsigned char bit_reverse(unsigned char a){
+  return ((a&1)<<7)|((a&2)<<5)|((a&4)<<3)|((a&8)<<1)|((a&16)>>1)|((a&32)>>3)|((a&64)>>5)|((a&128)>>7);
+}
+
 int _sim_binary(int program_fd,char *output_instr_file_name){
   int n,pc=0;
-  int *bin;
-  register int i,tmp,j;
+  unsigned int *bin;
+  register int i,j;
+  register unsigned int tmp;
   FILE *output_instr_file;
   /*命令のロード*/
   n=lseek(program_fd,0,SEEK_END)>>2;
@@ -187,12 +193,12 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
     }
   }
   if(n>0){
-    bin=(int*)malloc(n*sizeof(int));
+    bin=(unsigned int*)malloc(n*sizeof(unsigned int));
     read(program_fd,bin,n<<2);
     for(i=0;i<n;i++){
       if(bin[i]^0xffffffff){
 	tmp=bin[i];
-	bin[i]=(((tmp&0xFF000000)>>24))|(((tmp&0xFF0000)>>16)<<8)|(((tmp&0xFF00)>>8)<<16)|((tmp&0xFF)<<24);
+	bin[i]=((unsigned int)bit_reverse((unsigned char)((tmp&0xFF000000)>>24)))|((unsigned int)bit_reverse((unsigned char)((tmp&0xFF0000)>>16))<<8)|((unsigned int)bit_reverse((unsigned char)((tmp&0xFF00)>>8))<<16)|((unsigned int)bit_reverse((unsigned char)(tmp&0xFF))<<24);
       }else{
 	pc=i;
 	break;
