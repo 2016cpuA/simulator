@@ -352,9 +352,15 @@ int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa) {
 }
 
 int instr_in(Simulator *sim,int rs,int rt,int rd,int sa){
-  char buf[4];
+  unsigned char buf[4];
+  int size;
   (sim->pc)++;
-  fread(buf, 4, 1, input_file);
+  size=(int)fread(buf, 1, 4, input_file);
+  if(size<4){
+    for(;size<4;size++){
+      buf[size]=(unsigned char)255;
+    }
+  }
   sim->reg[rd]=((int)(buf[0])<<24)|((int)(buf[1])<<16)|((int)(buf[2])<<8)|((int)(buf[3]));
   return 0;
 }
