@@ -14,14 +14,25 @@ extern int debug;
 extern Label *labels;
 int n_label;
 
-void conv(int code,char buf[4]){
-  buf[0]=(char)Rev_bits(code&0xFF);
-  buf[1]=(char)Rev_bits((code&0xFF00)>>8);
-  buf[2]=(char)Rev_bits((code&0xFF0000)>>16);
-  buf[3]=(char)Rev_bits((code&0xFF000000)>>24);
+static inline char bit_reverse(char a){
+  return ((a&1)<<7)|((a&2)<<5)|((a&4)<<3)|((a&8)<<1)|((a&16)>>1)|((a&32)>>3)|((a&64)>>5)|((a&128)>>7);
 }
 
-void flip(int code,char buf[4]){
+static inline void flib_rev(int code,char buf[4]){
+  buf[3]=bit_reverse((char)(code&0xFF));
+  buf[2]=bit_reverse((char)((code&0xFF00)>>8));
+  buf[1]=bit_reverse((char)((code&0xFF0000)>>16));
+  buf[0]=bit_reverse((char)((code&0xFF000000)>>24));
+}
+
+static inline void conv(int code,char buf[4]){
+  buf[0]=bit_reverse((char)(code&0xFF));
+  buf[1]=bit_reverse((char)((code&0xFF00)>>8));
+  buf[2]=bit_reverse((char)((code&0xFF0000)>>16));
+  buf[3]=bit_reverse((char)((code&0xFF000000)>>24));
+}
+
+static inline void flip(int code,char buf[4]){
   buf[3]=(char)(code&0xFF);
   buf[2]=(char)((code&0xFF00)>>8);
   buf[1]=(char)((code&0xFF0000)>>16);
@@ -38,7 +49,7 @@ int make_code(int out_fd,Instruct *instr,int n){
       case TYPE_R:
 	fetch_r(NULL,op,instr[i]);
 	code=make_code_r(instr[i].opcode&MASK_OP_FUN,op[0],op[1],op[2],op[3]);
-	flip(code,buf);
+	flip_rev(code,buf);
 	for(j=0;j<4;j++)
 	  written+=write(out_fd,(void*)(buf+j),1);
 	break;
@@ -49,14 +60,14 @@ int make_code(int out_fd,Instruct *instr,int n){
 	else
 	  code=instr[i].opcode;
 	code=make_code_i(code&MASK_OP_FUN,op[0],op[1],op[2]);
-	flip(code,buf);
+	flip_rev(code,buf);
 	for(j=0;j<4;j++)
 	  written+=write(out_fd,(void*)(buf+j),1);
 	break;
       case TYPE_J:
 	fetch_j(NULL,op,instr[i]);
 	code=make_code_j(instr[i].opcode&MASK_OP_FUN,op[0]);
-	flip(code,buf);
+	flip_rev(code,buf);
 	for(j=0;j<4;j++)
 	  written+=write(out_fd,(void*)(buf+j),1);
 	break;
