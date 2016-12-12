@@ -220,6 +220,7 @@ inline int fetch_j(int (**instr)(Simulator*,int),int op[4],Instruct ins){
 
 int code_fetch(int code,unsigned int *opcode, int op[4]) {
   int type;
+  
   if(Fetch_opcode(code)==0||Fetch_opcode(code)==0x11)
     *opcode=MASK_OP_FUN&code;
   else

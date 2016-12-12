@@ -15,7 +15,7 @@ extern Label *labels;
 extern int get_pc(Label *labels,char *name_label);
 /*assemble.cに定義*/
 extern int make_code(int out_fd,Instruct *instr,int n);
-
+extern int make_code_another(int out_fd,Instruct *instr,int n);
 static inline void Sim_Init(Simulator *sim) {
   int _i;
   (*sim).mem=(char*)malloc(MEMSIZE*sizeof(char));
@@ -427,6 +427,7 @@ int step_simulation(Instruct *instr, int n) {
   int index[NUM_INSTR_LIBFUN];
   Queue_int prev_access[REGS]={};
   Queue_int prev_access_f[REGS]={};
+  Queue_hist prev_access_mem;
   int l = 0;//何行先にブレークポイントをセットしたいか
   int flag_float,signal_go=0;
   enum Flag flag=CONTINUE;
@@ -436,6 +437,7 @@ int step_simulation(Instruct *instr, int n) {
     qi_init(&prev_access[i]);
     qi_init(&prev_access[i]);
   }
+  qh_init(&prev_access_mem);
   fprintf(stderr,"%d\n",NUM_INSTR_LIBFUN);
   if(statistics) 
     stat_init(index,opcodes);
@@ -579,7 +581,7 @@ int step_simulation(Instruct *instr, int n) {
 }
 
 
-int _sim(int program_fd, char *output_instr_file_name, int out_binary_fd) {
+int _sim(int program_fd, char *output_instr_file_name, int out_binary_fd,int system_verilog_fd) {
   int n, written_bytes;
   Instruct *instr;
   /*命令のロード*/
@@ -589,7 +591,10 @@ int _sim(int program_fd, char *output_instr_file_name, int out_binary_fd) {
     written_bytes = make_code(out_binary_fd, instr, n);
     fprintf(stderr, "%d byte written\n", written_bytes);
   }
-
+  if (system_verilog_fd > 0) {  //SystemVerilog出力機能が有効のとき
+    written_bytes = make_code_another(system_verilog_fd, instr, n);
+    fprintf(stderr, "%d byte written\n", written_bytes);
+  }
   if (execute && n >= 0) {  //シミュレーションを実行
     if (debug) step_simulation(instr,n);  //ステップ実行
     else simulation(instr,n); //通常実行

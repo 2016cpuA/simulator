@@ -18,7 +18,7 @@ static inline char bit_reverse(char a){
   return ((a&1)<<7)|((a&2)<<5)|((a&4)<<3)|((a&8)<<1)|((a&16)>>1)|((a&32)>>3)|((a&64)>>5)|((a&128)>>7);
 }
 
-static inline void flib_rev(int code,char buf[4]){
+static inline void flip_rev(int code,char buf[4]){
   buf[3]=bit_reverse((char)(code&0xFF));
   buf[2]=bit_reverse((char)((code&0xFF00)>>8));
   buf[1]=bit_reverse((char)((code&0xFF0000)>>16));
@@ -92,8 +92,34 @@ int make_code(int out_fd,Instruct *instr,int n){
   return written;
 }
 
+int make_code_another(int out_fd,Instruct *instr,int n){
+  int i,op[4],instr_type,code,written=0;
+  char buf_code[64];
+  for(i=0;i<n;i++){
+    if((instr_type=judge_type(instr[i].opcode))>0){
+      switch(instr_type){
+      case TYPE_R:
+	fetch_r(NULL,op,instr[i]);
+	code=make_code_r(instr[i].opcode&MASK_OP_FUN,op[0],op[1],op[2],op[3]);
+	break;
+      case TYPE_I:
+	fetch_i(NULL,op,instr[i]);
+	if(instr[i].opcode==LA)
+	  code=ADDI;
+	else
+	  code=instr[i].opcode;
+	code=make_code_i(code&MASK_OP_FUN,op[0],op[1],op[2]);
+	break;
+      case TYPE_J:
+	fetch_j(NULL,op,instr[i]);
+	code=make_code_j(instr[i].opcode&MASK_OP_FUN,op[0]);
+	break;
+      }
+    }
+    sprintf(buf_code,"inst_mem[%d] <= 32'h%08x;\n",i,code);
+    written+=write(out_fd,(void*)(buf_code),strlen(buf_code));
+  }
+  fprintf(stderr,"writing codes for test on SystemVerilog.\n");
+  return written;
+}
 
-/*
-program
-0xffffffff
-*/
