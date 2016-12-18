@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "instructs.h"
 
 #define Print(text) fprintf(out_file,text)
@@ -8,7 +9,9 @@
 FILE *input_file;
 FILE *output_file;
 
-int get_instr(char *name){
+int max_addr=0;
+
+unsigned int get_instr(char *name){
   long long int x=0;
   int i;
   int max = strlen(name);
@@ -20,16 +23,12 @@ int get_instr(char *name){
     if(i!=max-1)
       x<<=8;
   }
-  if(!(x^0x616464L)|!(x^0x414444L)){
-    return ADD;
-  }else if(!(x^0x61646469L)|!(x^0x41444449L)){
+  if(!(x^0x61646469L)|!(x^0x41444449L)){
     return ADDI;
+  }else if(!(x^0x616464L)|!(x^0x414444L)){
+    return ADD;
   }else if(!(x^0x737562L)|!(x^0x535542L)){
     return SUB;
-  }else if(!(x^0x6d756c74L)|!(x^0x4d554c54L)){
-    return MULT;
-  }else if(!(x^0x646976L)|!(x^0x444956L)){
-    return DIV;
   }else if(!(x^0x736c74L)|!(x^0x534c54L)){
     return SLT;
   }else if(!(x^0x626571L)|!(x^0x424551L)){
@@ -70,12 +69,6 @@ int get_instr(char *name){
     return IN;
   }else if(!(x^0x6f7574L)|!(x^0x4f5554L)){
     return OUT;
-  }else if(!(x^0x636c656172L)|!(x^0x434c454152L)){ /* clear */
-    return 0;
-  }else if(!(x^0x6e6f70L)|!(x^0x4e4f50L)){
-    return NOP;
-  }else if(!(x^0x6d6f7665L)|!(x^0x4d4f5645L)){
-    return MOVE;
   }else if(!(x^0x73776331L)|!(x^0x53574331L)){
     return SWC1;
   }else if(!(x^0x6c776331L)|!(x^0x4c574331L)){
@@ -86,7 +79,7 @@ int get_instr(char *name){
     return SUB_S;  
   }else if(!(x^0x6d756c2e73L)|!(x^0x4d554c2e53L)|!(x^0x4d554c2e73L)){
     return MUL_S;
-  }else if(!(x^0x6469762e73L)|!(x^0x5449562e53L)|!(x^0x5449562e73L)){
+  }else if(!(x^0x6469762e73L)|!(x^0x4449562e53L)|!(x^0x4449562e73L)){
     return DIV_S;
   }else if(!(x^0x632e65712e73L)|!(x^0x432e45512e53L)|!(x^0x432e65712e73L)){
     return C_EQ_S;
@@ -94,6 +87,18 @@ int get_instr(char *name){
     return C_LE_S;
   }else if(!(x^0x632e6c742e73L)|!(x^0x432e4c542e53L)|!(x^0x432e6c742e73L)){
     return C_LT_S;
+  }else if(!(x^0x6d756c74L)|!(x^0x4d554c54L)){
+    return MULT;
+  }else if(!(x^0x646976L)|!(x^0x444956L)){
+    return DIV;
+  }else if(!(x^0x636c656172L)|!(x^0x434c454152L)){ /* clear */
+    return 0;
+  }else if(!(x^0x6e6f70L)|!(x^0x4e4f50L)){
+    return NOP;
+  }else if(!(x^0x6d6f7665L)|!(x^0x4d4f5645L)){
+    return MOVE;
+  }else if(!(x^0x68616c74L)|!(x^0x48414c54L)){
+    return HALT;
   }else{
     printf("Error: unknown instruction '%s'\n",name);
     return UNKNOWN;
@@ -153,6 +158,109 @@ int make_code_j(int opcode,int instr_index) {
   return (opcode&0xfc000000)|(instr_index&0x03ffffff);
 }
 
+#ifndef _HP
+#define _HP 28
+#endif
+
+void sim_libs(Simulator *sim,int label){
+  int i,int_init,max,hp;
+  float fl_init;
+  switch(label){
+  case LIB_WBYTE: 
+    putc((sim->reg[1]&0xff),output_file);
+    break;
+  case LIB_WINT: 
+    fprintf(output_file,"%d",(sim->reg[1]));
+    break;
+  case LIB_WFLOAT: 
+    fprintf(output_file,"%f",(sim->freg[1]));
+    break;
+  case LIB_WFLOATE: 
+    fprintf(output_file,"%e",(sim->freg[1]));
+    break;
+  case LIB_NLINE: 
+    fprintf(output_file,"\n");
+    break;
+  case LIB_RBYTE: 
+    sim->reg[1]=fgetc(input_file);
+    break;
+  case LIB_RINT: 
+    fscanf(input_file,"%d",&(sim->reg[1]));
+    break;
+  case LIB_RFLOAT: 
+    fscanf(input_file,"%f",&(sim->freg[1]));
+    break;
+  case LIB_SIN: 
+    sim->freg[1]=sinf(sim->freg[1]);
+    break;
+  case LIB_COS: 
+    sim->freg[1]=cosf(sim->freg[1]);
+    break;
+  case LIB_ATAN: 
+    sim->freg[1]=atanf(sim->freg[1]);
+    break;
+  case LIB_ITOF:
+    sim->freg[1]=(float)(sim->reg[1]);
+    break;
+  case LIB_FTOI:
+    sim->reg[1]=(int)(sim->freg[1]);
+    break;
+  case LIB_FLOOR:
+    sim->freg[1]=floorf(sim->freg[1]);
+    break;
+  case LIB_SQRT:
+    sim->freg[1]=sqrtf(sim->freg[1]);
+    break;
+  case LIB_FABS:
+    sim->freg[1]=fabsf(sim->freg[1]);
+    break;
+  case LIB_CR_ARRAY:
+    hp=sim->reg[_HP];
+    max=sim->reg[1];
+    int_init=sim->reg[2];
+    for(i=0;i<max;i++){
+      *(int*)&(sim->mem[i*4+hp])=int_init;
+    }
+    sim->reg[_HP]+=(sim->reg[1])*4;
+    sim->reg[1]=hp;
+    break;
+  case LIB_CR_ARRAY_F:
+    hp=sim->reg[_HP];
+    max=sim->reg[1];
+    fl_init=sim->freg[1];
+    for(i=0;i<max;i++){
+      *(float*)&(sim->mem[i*4+hp])=fl_init;
+    }
+    sim->reg[_HP]+=max*4; 
+    sim->reg[1]=hp;
+    break;
+  case LIB_F_IS_0:
+    sim->reg[1]=(sim->freg[1]==0.0);
+    break;
+  case LIB_F_IS_POS:
+    sim->reg[1]=(sim->freg[1]>0.0);
+    break;
+  case LIB_F_IS_NEG:
+    sim->reg[1]=(sim->freg[1]<0.0);
+    break;
+  case LIB_F_NEG:
+    sim->freg[1]=-(sim->freg[1]);
+    break;
+  case LIB_F_SQR:
+    sim->freg[1]=(sim->freg[1])*(sim->freg[1]);
+    break;
+  case LIB_F_LESS:
+    sim->reg[1]=(sim->freg[1]<sim->freg[2]);
+    break;
+  case LIB_F_HALF:
+    sim->freg[1]=(sim->freg[1])*0.5;
+    break;
+  case DBG_PSTR:
+    fprintf(stderr,"%s\n",(sim->mem)+(sim->reg[1]));
+    break;
+  }
+}
+
 int instr_nop(Simulator *sim,int rs,int rt,int rd,int sa) {
   Inc(sim->pc);
   return 0;
@@ -189,7 +297,12 @@ int instr_slt(Simulator *sim,int rs,int rt,int rd,int sa) {
   return 0; 
 }
 int instr_jr(Simulator *sim,int rs,int rt,int rd,int sa) {
-  sim->pc = sim->reg[rt];
+  if(sim->reg[rt]<0){
+    fprintf(stderr,"Error(jr; pc=%d): invalid instruction index %d\n",sim->pc,sim->reg[rt]);
+    return rt-64;
+  }else{
+    sim->pc = sim->reg[rt];
+  }
   return 0;
 }
 
@@ -213,7 +326,7 @@ int instr_xor(Simulator *sim,int rs,int rt,int rd,int sa) {
  
 int instr_sll(Simulator *sim,int rs,int rt,int rd,int sa) {
   if(rs!=0||rt!=0||rd!=0||sa!=0){
-    sim->reg[rd] = (sim->reg[rt]) << sa;
+    sim->reg[rd] =(int)((unsigned int)(sim->reg[rt])) << sa;
   }
   Inc(sim->pc);
   return 0;
@@ -239,14 +352,28 @@ int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa) {
 }
 
 int instr_in(Simulator *sim,int rs,int rt,int rd,int sa){
+  unsigned char buf[4];
+  int size;
   (sim->pc)++;
-  fread(&sim->reg[rd], 4, 1, input_file);
+  size=(int)fread(buf, 1, 4, input_file);
+  if(size<4){
+    for(;size<4;size++){
+      buf[size]=(unsigned char)255;
+    }
+  }
+  sim->reg[rd]=((int)(buf[0])<<24)|((int)(buf[1])<<16)|((int)(buf[2])<<8)|((int)(buf[3]));
   return 0;
 }
 
 int instr_out(Simulator *sim,int rs,int rt,int rd,int sa){
+  char buf[4];
+  int target = sim->reg[rs];
+  buf[0]=(char)(target>>24);
+  buf[1]=(char)((target>>16)&0xff);
+  buf[2]=(char)((target>>8)&0xff);
+  buf[3]=(char)((target)&0xff);
   (sim->pc)++;
-  fwrite(&sim->reg[rs], 4, 1, output_file);
+  fwrite(buf, 4, 1, output_file);
   return 0;
 }
 
@@ -279,13 +406,23 @@ int instr_ori(Simulator *sim,int rs,int rt,int imm) {
 }
 
 int instr_beq(Simulator *sim,int rs,int rt,int offset) {
-  if (sim->reg[rs] == sim->reg[rt]) sim->pc += offset;
-  else Inc(sim->pc);
+  if (sim->reg[rs] == sim->reg[rt]){
+    if (sim->pc+offset<0){
+    fprintf(stderr,"Error(beq; pc=%d): invalid instruction index %d\n",sim->pc,sim->pc+offset);
+    return -1;
+    }else
+      sim->pc += offset;
+  }else Inc(sim->pc);
   return 0;
 }
 
 int instr_bne(Simulator *sim,int rs,int rt,int offset) {
-  if (sim->reg[rs] != sim->reg[rt]) sim->pc += offset;
+  if (sim->reg[rs] != sim->reg[rt])
+    if (sim->pc+offset<0){
+      fprintf(stderr,"Error(bne; pc=%d): invalid instruction index %d\n",sim->pc,sim->pc+offset);
+    return -1;
+    }else
+      sim->pc += offset;
   else Inc(sim->pc);
   return 0;
 }
@@ -293,32 +430,68 @@ int instr_bne(Simulator *sim,int rs,int rt,int offset) {
 int instr_lw(Simulator *sim,int rbase,int rt,int offset) {
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
-  sim->reg[rt] = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
-  Inc(sim->pc);
-  return 0;
+  if(0<=addr&&addr<MEMSIZE){
+    if(addr%4!=0) fprintf(stderr,"Warning(lw;pc=%d): bad address %d\n",sim->pc,addr);
+    sim->reg[rt] = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
+    Inc(sim->pc);
+    return 0;
+  }else{
+    fprintf(stderr,"Error(lw; pc=%d): invalid address %d\n",sim->pc,addr);
+    return -1;
+  }
 }
 
 int instr_sw(Simulator *sim,int rbase,int rt,int offset) {
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
-  memory[addr]=(char)((sim->reg[rt])&0xff);
-  memory[addr+1]=(char)(((sim->reg[rt])&0xff00)>>8);
-  memory[addr+2]=(char)(((sim->reg[rt])&0xff0000)>>16);
-  memory[addr+3]=(char)(((sim->reg[rt])&0xff000000)>>24);
-  Inc(sim->pc);
+  /*for debug*/
+  max_addr=(max_addr>sim->reg[rbase])?max_addr:sim->reg[rbase];
+  /*sim->reg[16]=max_addr;*/
+  /**/
+  if(addr>=0&&addr<MEMSIZE){
+    if(addr%4!=0) fprintf(stderr,"Warning(sw;pc=%d): bad address %d\n",sim->pc,addr);
+    memory[addr]=(char)((sim->reg[rt])&0xff);
+    memory[addr+1]=(char)(((sim->reg[rt])&0xff00)>>8);
+    memory[addr+2]=(char)(((sim->reg[rt])&0xff0000)>>16);
+    memory[addr+3]=(char)(((sim->reg[rt])&0xff000000)>>24);
+    Inc(sim->pc);
+  }else{
+    fprintf(stderr,"Error(sw; pc=%d): invalid address %d\n",sim->pc,addr);
+    return -1;
+  }
   return 0;
 }
 
 
 /*形式Jの命令*/
 int instr_jal(Simulator *sim,int instr_index) {
-  sim->reg[31] = (sim->pc) +1;
-  sim->pc =  instr_index ;
+  if(instr_index>0x1000000){
+    sim_libs(sim,instr_index);
+    Inc(sim->pc);
+  }else if(instr_index<0){
+    fprintf(stderr,"Error(jal; pc=%d): invalid instruction index %d\n",sim->pc,instr_index);
+    return -1;
+  }else{
+    sim->reg[31] = (sim->pc) +1;
+    sim->pc =  instr_index ;
+  }
   return 0;
 }
 
 int instr_j(Simulator *sim,int instr_index) {
-  sim->pc = instr_index ;
+  if(instr_index>0x1000000){
+    sim_libs(sim,instr_index);
+    sim->pc=sim->reg[31];
+    return 0;
+  }else if(instr_index<0){
+    fprintf(stderr,"Error(j; pc=%d): invalid instruction index %d\n",sim->pc,instr_index);
+    return -1;
+  }else{
+    if(sim->pc==instr_index)
+      return 65536;
+    else
+      sim->pc =  instr_index ;
+  }
   return 0;
 }
 
@@ -368,27 +541,34 @@ int instr_flwc1(Simulator *sim,int rbase,int ft,int offset){
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
   union i_f dest;
-  dest.i = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
-  sim->freg[ft] = dest.f;
-  Inc(sim->pc);
-  return 0;
+  if(0<=addr&&addr<MEMSIZE){
+    if(addr%4!=0) fprintf(stderr,"Warning(lwc1;pc=%d): bad address %d\n",sim->pc,addr);
+    dest.i = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
+    sim->freg[ft] = dest.f;
+    Inc(sim->pc);
+    return 0;
+  }else{
+    fprintf(stderr,"Error(lwc1; pc=%d): invalid address %d\n",sim->pc,addr);
+    return -1;
+  }
 }  
 int instr_fswc1(Simulator *sim,int rbase,int ft,int offset){
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
   union i_f src;
-  src.f=sim->freg[ft];
-  memory[addr]=(char)(src.i&0xff);
-  memory[addr+1]=(char)((src.i&0xff00)>>8);
-  memory[addr+2]=(char)((src.i&0xff0000)>>16);
-  memory[addr+3]=(char)((src.i&0xff000000)>>24);
-  Inc(sim->pc);
+  if(addr>=0&&addr<MEMSIZE){
+    if(addr%4!=0) fprintf(stderr,"Warning(swc1;pc=%d): bad address %d\n",sim->pc,addr);
+    src.f=sim->freg[ft];
+    memory[addr]=(char)(src.i&0xff);
+    memory[addr+1]=(char)((src.i&0xff00)>>8);
+    memory[addr+2]=(char)((src.i&0xff0000)>>16);
+    memory[addr+3]=(char)((src.i&0xff000000)>>24);
+    Inc(sim->pc);
+  }else{
+    fprintf(stderr,"Error(swc1; pc=%d): invalid address %d\n",sim->pc,addr);
+    return -1;
+  }
   return 0;
 }
 
 
-/*浮動小数点数用命令(仕様未定義)*/
-int instr_finv(Simulator *sim,int rs,int rt,int rd,int sa);
-int instr_sqrt(Simulator *sim,int rs,int rt,int rd,int sa);
-int instr_sin(Simulator *sim,int rs,int rt,int rd,int sa);
-int instr_cos(Simulator *sim,int rs,int rt,int rd,int sa);

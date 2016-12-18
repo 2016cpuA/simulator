@@ -8,9 +8,9 @@
 /*上位6bitをopcode,下位6bitをfunction(形式R以外は0),それ以外は0にする*/
 #define ADD 0x20
 #define ADDI 0x20000000
-#define SUB 0x1A
+#define SUB 0x22
 #define MULT 0x18
-#define DIV 0x22
+#define DIV 0x1A
 #define SLT 0x2A
 #define BEQ 0x10000000
 #define BNE 0x14000000
@@ -37,7 +37,8 @@
 #define DIV_S 0x44000003
 #define C_EQ_S 0x4400003C
 #define C_LE_S 0x4400003D
-#define C_LT_S 0x4400003E 
+#define C_LT_S 0x4400003E
+
 #define FMT_S 0
 /*mnemonics*/
 /* 変換後の命令数を取り出すためのマスク */
@@ -46,12 +47,15 @@
 #define Is_mnemonic(opcode)  ((opcode)&0x00000F00)
 /*このニーモニックの長さは?*/
 #define Len_mnemonic(opcode) ((((opcode)&0x00000F00)>>8)&15)
+/*halt 
+  j 'pc に変換される */
+#define HALT 0xFC00013F
 /*nop 
   sll %r0,%r0,%r0に変換される*/
 #define NOP 0x00000100
 /*move rt,rs
   addi rt,rs,0に変換される*/
-#define MOVE 0xFE000100
+#define MOVE 0xFC000100
 /*la rt,label
   addi rt,%r0,label に変換される*/
 #define LA 0xFC000101
@@ -60,6 +64,62 @@
   jr rt
   に変換される*/
 #define JALR 0xFC000202
+
+/*シミュレータ用特殊関数*/
+/*未実装のライブラリ関数をシミュレータ側で動作させるようにサポートする*/
+/*すべて2^26-n(n>0)の値のラベルを割り当てておく*/
+/*JALでこれらのラベルを読み込んだ際、対応した動作を行う*/
+/*LIB_***はライブラリで実装されるべき変数*/
+/*DBG_***はデバッグ用関数*/
+#define LIB_RBYTE 0x2000000-1
+#define LIB_RINT 0x2000000-2
+#define LIB_RFLOAT 0x2000000-3
+/*read_*関数*/
+/*標準出力から読み込んだ文字列を対応した形式に置き換え%r1,または%f0に置く*/
+#define LIB_NLINE 0x2000000-4
+/*print_newline関数*/
+/*改行を出力*/
+#define LIB_WBYTE 0x2000000-9
+#define LIB_WINT 0x2000000-10
+#define LIB_WFLOAT 0x2000000-11
+#define LIB_WFLOATE 0x2000000-12
+/*write_*関数*/
+/*%r1,または%f0の値を対応した形式で標準出力に出力*/
+#define LIB_SIN 0x2000000-17
+#define LIB_COS 0x2000000-18
+#define LIB_ATAN 0x2000000-19
+/*名称通り。入力・出力ともに%f0*/
+#define LIB_ITOF 0x2000000-20
+/*入力:%r1,出力:%f0*/
+#define LIB_FTOI 0x2000000-21
+/*入力:%f0,出力:%r1*/
+#define LIB_FLOOR 0x2000000-22
+/*入力,出力:%f0*/
+#define LIB_SQRT  0x2000000-23
+/*入力,出力:%f0*/
+#define LIB_FABS  0x2000000-24
+/*入力,出力:%f0*/
+#define LIB_CR_ARRAY 0x2000000-33
+/*入力:%r1,%r2,出力:%r1*/
+#define LIB_CR_ARRAY_F 0x2000000-34
+/*入力:%f0,出力:%r1*/
+#define LIB_F_IS_0 0x2000000-25
+/*入力:%f0,出力:%r1*/
+#define LIB_F_IS_POS 0x2000000-26
+/*入力:%f0,出力:%r1*/
+#define LIB_F_NEG 0x2000000-27
+/*入力:%f0,出力:%f0*/
+#define LIB_F_SQR 0x2000000-28
+/*入力:%f0,出力:%f0*/
+#define LIB_F_LESS 0x2000000-29
+/*入力:%f0,出力:%r1*/
+#define LIB_F_HALF 0x2000000-30
+/*入力:%r1,%f0,出力:%r1*/
+#define LIB_F_IS_NEG 0x2000000-31
+/*入力:%r1,%f0,出力:%r1*/
+#define DBG_PSTR 0x2000000-65
+/*%r1に格納されたポインタからNULまで文字列を出力。*/
+
 
 /*アセンブラ指令,デバッグ用命令 バイナリファイルには含めない命令*/
 #define MASK_ASSEM_INSTR 0x02000000
@@ -182,24 +242,24 @@ int instr_fclts(Simulator *sim,int fmt,int ft,int fs,int rd);
 
 /*アセンブラの命令名を読み取るための関数
   実体はinstructs.cに記述*/
-int get_instr(char *name);
+unsigned int get_instr(char *name);
 /*命令の識別番号からアセンブラの命令名を読み取り、指定したファイルストリームに出力*/
 void print_instr(Instruct instr,FILE* out_file);
 
 /*以下はfetch.cに定義されている*/
 /*命令の形式を取得する関数*/
-int judge_type(int opcode);
+int judge_type(unsigned int opcode);
 #define TYPE_R 0x10
 #define TYPE_I 0x20
 #define TYPE_J 0x30
-#define UNKNOWN_OP -1
+#define UNKNOWN_OP 0xffffffff
 
 /*Instruct型のデータから、実行する関数とその引数を返す関数*/
 int fetch_r(int (**instr)(Simulator*,int,int,int,int),int op[4],Instruct ins);
 int fetch_i(int (**instr)(Simulator*,int,int,int),int op[4],Instruct ins);
 int fetch_j(int (**instr)(Simulator*,int),int op[4],Instruct ins);
 /*バイナリコードから、命令の種類と引数を取り出す関数*/
-int code_fetch(int code,int *opcode,int op[4]);
+int code_fetch(int code,unsigned int *opcode,int op[4]);
 
 /*命令をバイナリに変換する関数*/
 int make_code_r(int opcode,int rs,int rt,int rd,int sa);

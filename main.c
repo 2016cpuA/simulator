@@ -9,9 +9,9 @@
 #include "instructs.h"
 
 /*simulator.c*/
-extern int _sim(int program_fd,char* output_instr_file_name,int out_binary_fd);
+extern int _sim(int program_fd,char* output_instr_file_name,int out_binary_fd,int system_verilog_fd);
 extern int make_code(int out_fd,Instruct *instr,int n);
-extern int iter_max;
+extern long long int iter_max;
 extern int debug;
 extern int execute;
 extern int binary_output;
@@ -23,9 +23,9 @@ extern FILE *input_file;
 extern FILE *output_file;
 
 int main(int argc, char* argv[]) {
-  int program_fd,out_binary_fd = -1;
+  int program_fd,out_binary_fd = -1,system_verilog_fd=-1;
   int input_binary = 0;
-  int binary_output = 0;
+  int binary_output = 0,system_verilog=0;
   statistics = 0;
   execute = 1;
   debug = 0;
@@ -38,10 +38,10 @@ int main(int argc, char* argv[]) {
   extern char *optarg;
   extern int optind,opterr;
   
-  char *binary_file_name,*output_instr_file_name = NULL;
+  char *binary_file_name,*system_verilog_name,*output_instr_file_name = NULL;
   int name_len;
 
-  while ((ch = getopt(argc,argv,"bdsni:o:l:a:I:")) != -1) {
+  while ((ch = getopt(argc,argv,"bdsni:o:l:a:I:A:")) != -1) {
     switch (ch) {
     case 'b': /* read binary */
       input_binary=1;
@@ -71,8 +71,14 @@ int main(int argc, char* argv[]) {
       binary_file_name=(char*)malloc((name_len+1)*sizeof(char));
       strcpy(binary_file_name,optarg);
       break;
+    case 'A': /* Output code for test on System Verilog */
+      system_verilog=1;
+      name_len=strlen(optarg);
+      system_verilog_name=(char*)malloc((name_len+1)*sizeof(char));
+      strcpy(system_verilog_name,optarg);
+      break;
     case 'I':
-      iter_max=atoi(optarg);
+      iter_max=atoll(optarg);
       break;
     case 's': /*statistical info*/
       statistics = 1;
@@ -99,7 +105,13 @@ if (optind >= argc) {
          }
          free(binary_file_name);
        }
-       _sim(program_fd,output_instr_file_name,out_binary_fd);//アセンブリを実行
+       if (system_verilog) {//アセンブラ機能が有効かどうか
+         if ((system_verilog_fd = open(system_verilog_name, O_WRONLY | O_CREAT,00666)) < 0) {
+           fprintf(stderr, "Error: file '%s' not found\n", argv[1]);
+         } 
+         free(system_verilog_name);
+       }
+       _sim(program_fd,output_instr_file_name,out_binary_fd,system_verilog_fd);//アセンブリを実行
      }
    }
    close(program_fd);

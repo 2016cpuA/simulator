@@ -8,19 +8,20 @@
 #include "simulator.h"
 #include "instructs.h"
 
-#define Sim_Init(sim) int _i; do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++){ (sim).reg[_i]=0;(sim).freg[_i]=0;}(sim).pc=0;} while(0);
+#define Sim_Init(sim) int _i; (sim).mem=(char*)malloc(MEMSIZE*sizeof(char));do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++){ (sim).reg[_i]=0; (sim).freg[_i]=0;}(sim).pc=0;} while(0);
 #define Is_break(opcode) ((opcode)&_BREAK)
 #define Clear_break(opcode) ((opcode)&MASK_OP_FUN)
 #define Set_break(opcode) ((opcode)|_BREAK)
 /*オプションから受け取った変数*/
 /*simulation.c*/
-extern int iter_max,debug,execute;
+extern int debug,execute;
+extern long long int iter_max;
 extern void print_regs(Simulator sim);
 /*readline.c*/
 Label *labels;
 int n_label;
-void print_code(FILE *output_instr_file, int *bin, int n){
-  int i,op[4];
+void print_code(FILE *output_instr_file, unsigned int *bin, int n){
+  int i,op[4]={0,0,0,0};
   Instruct ins;
   fprintf(output_instr_file,"pc\tcode    \tinstr\top1\top2\top3\top4\n");
   for(i=0;i<n;i++){
@@ -30,19 +31,22 @@ void print_code(FILE *output_instr_file, int *bin, int n){
     fprintf(output_instr_file,"\t%d\t%d\t%d\t%d\n",op[0],op[1],op[2],op[3]);
   } 
 }
-int simulation_bin(int *bin, int n){
+int simulation_bin(unsigned int *bin, int n){
   Simulator sim;
   int now;
   Instruct ins;
-  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
-  int instr_type,opcode,clocks=0;
+  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4]={0,0,0,0};
+  int flag=0;
+  int instr_type;
+  unsigned int opcode;
+  long long int clocks=0;
   Sim_Init(sim);
   /*simulator実行部分*/
   fprintf(stderr,"Execution started.\n");
   while(sim.pc<n&&clocks<iter_max){
     /*FETCH*/
     now=bin[sim.pc];
-    if(now==0xffffffff)
+    if(!(now^0xffffffff))
       break;
     code_fetch(now,&opcode,op);
     instr_type=judge_type(opcode);
@@ -62,24 +66,29 @@ int simulation_bin(int *bin, int n){
     /*EXECUTE*/
     switch(instr_type){
     case TYPE_R: 
-      (*instr_r)(&sim,op[0],op[1],op[2],op[3]);
+      flag=(*instr_r)(&sim,op[0],op[1],op[2],op[3]);
       break;
     case TYPE_I:
-      (*instr_i)(&sim,op[0],op[1],op[2]);
+      flag=(*instr_i)(&sim,op[0],op[1],op[2]);
       break;
     case TYPE_J:
-      (*instr_j)(&sim,op[0]);
+      flag=(*instr_j)(&sim,op[0]);
       break;
     }
     clocks++;
+    if(flag<0||flag==65536){
+      break;
+    }
   }
   if(clocks>=iter_max){
     fprintf(stderr,"Execution stopped; too long operation.\n");
+  }else if(flag<0){
+    fprintf(stderr,"Fatal error occurred.\n");
   }else{
     fprintf(stderr,"Execution finished.\n");
   }
   print_regs(sim);
-  fprintf(stderr,"clocks: %d\n",clocks);
+  fprintf(stderr,"clocks: %lld\n",clocks);
   free(bin);
   return 0;
 }    
@@ -89,9 +98,11 @@ enum Flag {STEP,CONTINUE};
 int step_simulation_bin(Instruct *instr, int n) {
   Simulator sim;
   Instruct now;
-  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4];
-  int instr_type,clocks=0,stop=0;
+  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4]={0,0,0,0};
+  int instr_type,stop=0;
+  long long int clocks=0;
   int ch;
+  int breaker=0;
   enum Flag flag=CONTINUE;
   Sim_Init(sim);
   /*simulator実行部分*/
@@ -102,7 +113,7 @@ int step_simulation_bin(Instruct *instr, int n) {
     if(stop||flag==STEP){
       fprintf(stderr,"STEP No.%d.\n", sim.pc);
       print_regs(sim);
-      fprintf(stderr,"clocks: %d\n",clocks);
+      fprintf(stderr,"clocks: %lld\n",clocks);
       fprintf(stderr,"next instruct: ");
       print_instr(instr[sim.pc],stderr);
       fprintf(stderr,"\n");
@@ -132,28 +143,43 @@ int step_simulation_bin(Instruct *instr, int n) {
     /*EXECUTE*/
     switch(instr_type){
     case TYPE_R: 
-      (*instr_r)(&sim,op[0],op[1],op[2],op[3]);
+      breaker=(*instr_r)(&sim,op[0],op[1],op[2],op[3]);
       break;
     case TYPE_I:
-      (*instr_i)(&sim,op[0],op[1],op[2]);
+      breaker=(*instr_i)(&sim,op[0],op[1],op[2]);
       break;
     case TYPE_J:
-      (*instr_j)(&sim,op[0]);
+      breaker=(*instr_j)(&sim,op[0]);
       break;
     }
     clocks++;
+    if(breaker<0||breaker==65536){
+      break;
+    }
   }
-  
+  if(clocks>=iter_max){
+    fprintf(stderr,"Execution stopped; too long operation.\n");
+  }else if(breaker<0){
+    fprintf(stderr,"Fatal error occurred.\n");
+  }else{
+    fprintf(stderr,"Execution finished.\n");
+  }
   fprintf(stderr,"Execution finished.\n");
   print_regs(sim);
-  fprintf(stderr,"clocks: %d\n",clocks);
+  fprintf(stderr,"clocks: %lld\n",clocks);
   free(instr);
   return 0;
 }
+
+static inline unsigned char bit_reverse(unsigned char a){
+  return ((a&1)<<7)|((a&2)<<5)|((a&4)<<3)|((a&8)<<1)|((a&16)>>1)|((a&32)>>3)|((a&64)>>5)|((a&128)>>7);
+}
+
 int _sim_binary(int program_fd,char *output_instr_file_name){
   int n,pc=0;
-  int *bin;
-  register int i,tmp,j;
+  unsigned int *bin;
+  register int i,j;
+  register unsigned int tmp;
   FILE *output_instr_file;
   /*命令のロード*/
   n=lseek(program_fd,0,SEEK_END)>>2;
@@ -167,12 +193,12 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
     }
   }
   if(n>0){
-    bin=(int*)malloc(n*sizeof(int));
+    bin=(unsigned int*)malloc(n*sizeof(unsigned int));
     read(program_fd,bin,n<<2);
     for(i=0;i<n;i++){
-      if(bin[i]!=0xffffffff){
+      if(bin[i]^0xffffffff){
 	tmp=bin[i];
-	bin[i]=(Rev_bits((tmp&0xFF000000)>>24)<<24)|(Rev_bits((tmp&0xFF0000)>>16)<<16)|(Rev_bits((tmp&0xFF00)>>8)<<8)|Rev_bits(tmp&0xFF);
+	bin[i]=((unsigned int)bit_reverse((unsigned char)((tmp&0xFF000000)>>24)))|((unsigned int)bit_reverse((unsigned char)((tmp&0xFF0000)>>16))<<8)|((unsigned int)bit_reverse((unsigned char)((tmp&0xFF00)>>8))<<16)|((unsigned int)bit_reverse((unsigned char)(tmp&0xFF))<<24);
       }else{
 	pc=i;
 	break;
