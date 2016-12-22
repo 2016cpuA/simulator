@@ -50,6 +50,9 @@
 /*halt 
   j 'pc に変換される */
 #define HALT 0xFC00013F
+/*li rt,imm
+  addi rt,%r0,immに変換される*/
+#define LI 0xFC000103
 /*nop 
   sll %r0,%r0,%r0に変換される*/
 #define NOP 0x00000100

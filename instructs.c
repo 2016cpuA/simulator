@@ -47,6 +47,8 @@ unsigned int get_instr(char *name){
     return LW;
   }else if(!(x^0x6c61L)|!(x^0x4c41L)){
     return LA;
+  }else if(!(x^0x6c69L)|!(x^0x4c49L)){
+    return LI;
   }else if(!(x^0x7377L)|!(x^0x5357L)){
     return SW;
   }else if(!(x^0x616e64L)|!(x^0x414e44L)){
@@ -262,41 +264,53 @@ void sim_libs(Simulator *sim,int label){
 }
 
 int instr_nop(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(rs);
+  (void)(rt);
+  (void)(rd);
+  (void)(sa);
   Inc(sim->pc);
   return 0;
 }
 
 int instr_add(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(sa);
   sim->reg[rd] = sim->reg[rs] + sim->reg[rt];
   Inc(sim->pc);
   return 0;
 }
 
 int instr_sub(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(sa);
   sim->reg[rd] = sim->reg[rs] - sim->reg[rt];
   Inc(sim->pc);
   return 0;
 }
 
 int instr_mult(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(sa);
   sim->reg[rd] = sim->reg[rs] * sim->reg[rt];
   Inc(sim->pc);
   return 0;
 }
 
 int instr_div(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(sa);
   sim->reg[rd] = sim->reg[rs] / sim->reg[rt];
   Inc(sim->pc);
   return 0;
 }
 
 int instr_slt(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(sa);
   if (sim->reg[rs] < sim->reg[rt]) sim->reg[rd] = 1;
   else sim->reg[rd] = 0;
   Inc(sim->pc);
   return 0; 
 }
 int instr_jr(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(rs);
+  (void)(rd);
+  (void)(sa);
   if(sim->reg[rt]<0){
     fprintf(stderr,"Error(jr; pc=%d): invalid instruction index %d\n",sim->pc,sim->reg[rt]);
     return rt-64;
@@ -307,18 +321,21 @@ int instr_jr(Simulator *sim,int rs,int rt,int rd,int sa) {
 }
 
 int instr_and(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(sa);
   sim->reg[rd] = sim->reg[rs] & sim->reg[rt];
   Inc(sim->pc);
   return 0;
 }
 
 int instr_or(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(sa);
   sim->reg[rd] = sim->reg[rs] | sim->reg[rt];
   Inc(sim->pc);
   return 0;
 }
 
 int instr_xor(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(sa);
   sim->reg[rd] = sim->reg[rs] ^ sim->reg[rt];
   Inc(sim->pc);
   return 0;
@@ -334,6 +351,7 @@ int instr_sll(Simulator *sim,int rs,int rt,int rd,int sa) {
 #define Sgn(x) ((x)<0?-2147483648:0)
 
 int instr_sra(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(rs);
   sim->reg[rd] = (sim->reg[rt]) >> sa;
   Inc(sim->pc);
   return 0;
@@ -343,6 +361,7 @@ union _int{
   unsigned int u;
 };
 int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa) {
+  (void)(rs);
   union _int i;
   i.i=sim->reg[rt];
   i.u=i.u>>sa;
@@ -352,6 +371,9 @@ int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa) {
 }
 
 int instr_in(Simulator *sim,int rs,int rt,int rd,int sa){
+  (void)(rs);
+  (void)(rt);
+  (void)(sa);
   unsigned char buf[4];
   int size;
   (sim->pc)++;
@@ -366,6 +388,9 @@ int instr_in(Simulator *sim,int rs,int rt,int rd,int sa){
 }
 
 int instr_out(Simulator *sim,int rs,int rt,int rd,int sa){
+  (void)(rd);
+  (void)(rt);
+  (void)(sa);
   char buf[4];
   int target = sim->reg[rs];
   buf[0]=(char)(target>>24);
@@ -381,12 +406,14 @@ int instr_out(Simulator *sim,int rs,int rt,int rd,int sa){
 /*形式Iの命令*/
 
 int instr_move(Simulator *sim,int rs,int rt,int imm){
+  (void)(imm);
   (sim->reg[rt])=(sim->reg[rs]);
   Inc(sim->pc);
   return 0;
 }
 
 int instr_addi(Simulator *sim,int rs,int rt,int imm) {
+  
   int _imm = (int)((short)(imm&0xFFFF));
   sim->reg[rt] = sim->reg[rs] + _imm;
   (sim->pc)++;
@@ -501,37 +528,44 @@ union i_f {
 };
 /*浮動小数点・R形式*/
 int instr_fadds(Simulator *sim,int fmt,int ft,int fs,int fd){
+  (void)(fmt);
   sim->freg[fd]=(sim->freg[fs])+(sim->freg[ft]);
   Inc(sim->pc);
   return 0;
 }
 int instr_fsubs(Simulator *sim,int fmt,int ft,int fs,int fd){
+  (void)(fmt);
   sim->freg[fd]=(sim->freg[fs])-(sim->freg[ft]);
   Inc(sim->pc);
   return 0;
 }
 int instr_fmuls(Simulator *sim,int fmt,int ft,int fs,int fd){
+  (void)(fmt);
   sim->freg[fd]=(sim->freg[fs])*(sim->freg[ft]);
   Inc(sim->pc);
   return 0;
 }
 int instr_fdivs(Simulator *sim,int fmt,int ft,int fs,int fd){
+  (void)(fmt);
   float diver=sim->freg[ft],dived=sim->freg[fs];
   sim->freg[fd]=dived/diver;
   Inc(sim->pc);
   return 0;
 }
 int instr_fceqs(Simulator *sim,int fmt,int ft,int fs,int rd){
+  (void)(fmt);
   sim->reg[rd]=(sim->freg[fs]==sim->freg[ft]);
   Inc(sim->pc);
   return 0;
 }
 int instr_fcles(Simulator *sim,int fmt,int ft,int fs,int rd){
+  (void)(fmt);
   sim->reg[rd]=(sim->freg[fs]<=sim->freg[ft]);
   Inc(sim->pc);
   return 0;
 }
 int instr_fclts(Simulator *sim,int fmt,int ft,int fs,int rd){
+  (void)(fmt);
   sim->reg[rd]=(sim->freg[fs]<sim->freg[ft]);
   Inc(sim->pc);
   return 0;

@@ -186,6 +186,15 @@ int convert_mnemonic(Instr_list *instr_l,int pc){
       ins.operands[3]=0;
       list_push(instr_l,ins);
       break;
+    case LI:
+      dpc=1;
+      ins.opcode=ADDI|isbreak;
+      ins.operands[0]=op[0];
+      ins.operands[1]=0;
+      ins.operands[2]=op[1];
+      ins.operands[3]=0;
+      list_push(instr_l,ins);
+      break;
     case JALR:
       dpc=2;
       ins.opcode=JR;
