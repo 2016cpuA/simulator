@@ -43,7 +43,7 @@ union i_f{
   int i;
   float f;
 };
-void print_regs(Simulator sim) {
+extern inline void print_regs(Simulator sim) {
   int i;
   union i_f tmp;
   fprintf(stderr, "GPRs:\n");
@@ -68,7 +68,7 @@ void print_regs(Simulator sim) {
 static inline double subtime(struct timeval t,struct timeval t0){
   return (double)(t.tv_sec-t0.tv_sec)+(double)(t.tv_usec-t0.tv_usec)*0.000001;
 }
-static inline void print_time(double t_sec){
+extern inline void print_time(double t_sec){
   int hour,min,sec,usec;
   fprintf(stderr,"time:");
   if(t_sec>=0){
@@ -409,7 +409,7 @@ int simulation(Instruct *instr, int n){
   return 0;
 }    
 
-static inline void console_help(){
+extern inline void console_help(){
   fprintf(stderr,"commands\n");
   fprintf(stderr,"c\tContinue; continue execution.\n");
   fprintf(stderr,"s\tStep; execute next instruction.\n");

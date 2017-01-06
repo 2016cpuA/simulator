@@ -7,15 +7,36 @@
 #include <fcntl.h>
 #include "simulator.h"
 #include "instructs.h"
-#define Sim_Init(sim) int _i; (sim).mem=(int*)malloc(MEMSIZE*sizeof(int));do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++){ (sim).reg[_i]=0; (sim).freg[_i]=0;}(sim).pc=0;} while(0);
+#include "message.h"
+#include <sys/time.h>
+static inline void Sim_Init(Simulator *sim) {
+  int _i;
+  (*sim).mem=(int*)malloc(MEMSIZE*sizeof(int));
+  do{
+    for(_i=0;_i<MEMSIZE;_i++)
+      (*sim).mem[_i]=0;
+    for(_i=0;_i<REGS;_i++){
+      (*sim).reg[_i]=0;
+      (*sim).freg[_i]=0;
+    }
+    (*sim).pc=0;
+  } while(0);
+}
+static inline double subtime(struct timeval t,struct timeval t0){
+  return (double)(t.tv_sec-t0.tv_sec)+(double)(t.tv_usec-t0.tv_usec)*0.000001;
+}
+#define Sim_fin(sim) do{ free((sim).mem);} while(0);
+
 #define Is_break(opcode) ((opcode)&_BREAK)
-#define Clear_break(opcode) ((opcode)&MASK_OP_FUN)
-#define Set_break(opcode) ((opcode)|_BREAK)
+#define Clear_break(opcode) opcode=((opcode)&MASK_OP_FUN)
+#define Set_break(opcode) opcode=((opcode)|_BREAK)
 /*オプションから受け取った変数*/
 /*simulation.c*/
 extern int debug,execute;
 extern long long int iter_max;
 extern void print_regs(Simulator sim);
+extern void print_time(double t_sec);
+extern void console_help();
 /*readline.c*/
 Label *labels;
 int n_label;
@@ -36,46 +57,56 @@ void print_code(FILE *output_instr_file, unsigned int *bin, int n){
 }
 int simulation_bin(unsigned int *bin, int n){
   Simulator sim;
-  int now;
-  Instruct ins;
-  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4]={0,0,0,0};
+  int now,i;
+  Instruct ins,tmp;
+  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int);
   int flag=0;
   int instr_type;
-  unsigned int opcode;
   long long int clocks=0;
-  Sim_Init(sim);
+  Instruct *instr=(Instruct*)malloc(n*sizeof(Instruct));
+  struct timeval t0,t;
+  for(i=0;i<n;i++){
+    instr[i].opcode=0xffffffff;
+  }
+  Sim_Init(&sim);
   /*simulator実行部分*/
-  fprintf(stderr,"Execution started.\n");
+  print_msg_sim_start();
+  gettimeofday(&t0,NULL);
   while(sim.pc<n&&clocks<iter_max){
     /*FETCH*/
-    now=bin[sim.pc];
-    if(!(now^0xffffffff))
-      break;
-    code_fetch(now,&opcode,op);
-    instr_type=judge_type(opcode);
-    ins.opcode=opcode;
+    if(instr[sim.pc].opcode==0xffffffff){
+      now=bin[sim.pc];
+      if(!(now^0xffffffff))
+	break;
+      code_fetch(now,&(ins.opcode),ins.operands);
+      instr[sim.pc]=ins;
+    }else{
+      ins=instr[sim.pc];
+    }
+    tmp.opcode=ins.opcode;
+    instr_type=judge_type(tmp.opcode);
     switch(instr_type){
     case TYPE_R: 
-      fetch_r(&instr_r,NULL,ins);
+      fetch_r(&instr_r,NULL,tmp);
       break;
     case TYPE_I:
-      fetch_i(&instr_i,NULL,ins);
+      fetch_i(&instr_i,NULL,tmp);
       break;
     case TYPE_J:
-      fetch_j(&instr_j,NULL,ins);
+      fetch_j(&instr_j,NULL,tmp);
       break;
     }
 
     /*EXECUTE*/
     switch(instr_type){
     case TYPE_R: 
-      flag=(*instr_r)(&sim,op[0],op[1],op[2],op[3]);
+      flag=(*instr_r)(&sim,ins.operands[0],ins.operands[1],ins.operands[2],ins.operands[3]);
       break;
     case TYPE_I:
-      flag=(*instr_i)(&sim,op[0],op[1],op[2]);
+      flag=(*instr_i)(&sim,ins.operands[0],ins.operands[1],ins.operands[2]);
       break;
     case TYPE_J:
-      flag=(*instr_j)(&sim,op[0]);
+      flag=(*instr_j)(&sim,ins.operands[0]);
       break;
     }
     clocks++;
@@ -83,94 +114,168 @@ int simulation_bin(unsigned int *bin, int n){
       break;
     }
   }
+  fflush(stdout);
+  gettimeofday(&t,NULL);
   if(clocks>=iter_max){
-    fprintf(stderr,"\e[33;1mExecution stopped; too long operation.\e[m\n");
+    print_msg_sim_stop();
   }else if(flag<0){
-    fprintf(stderr,"Fatal error occurred.\n");
+    print_msg_sim_fatal();
   }else{
-    fprintf(stderr,"Execution finished.\n");
+    print_msg_sim_finish();
   }
   print_regs(sim);
   fprintf(stderr,"clocks: %lld\n",clocks);
+  print_time(subtime(t,t0));
   free(bin);
+  free(instr);
+  Sim_fin(sim);
   return 0;
 }    
 
 
 enum Flag {STEP,CONTINUE};
-int step_simulation_bin(Instruct *instr, int n) {
+int step_simulation_bin(unsigned int *bin, int n) {
   Simulator sim;
-  Instruct now;
-  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int),op[4]={0,0,0,0};
+  int now,i;
+  Instruct ins,tmp;
+  int (*instr_r)(Simulator*,int,int,int,int),(*instr_i)(Simulator*,int,int,int),(*instr_j)(Simulator*,int);
+  int flag=0;
   int instr_type,stop=0;
-  long long int clocks=0;
   int ch;
-  int breaker=0;
-  enum Flag flag=CONTINUE;
-  Sim_Init(sim);
+  long long int clocks=0;
+  Instruct *instr=(Instruct*)malloc(n*sizeof(Instruct));
+  struct timeval t0,t;
+  int l = 0;//何行先にブレークポイントをセットしたいか
+  int signal_go=0;
+  enum Flag mode=CONTINUE;
+  for(i=0;i<n;i++){
+    instr[i].opcode=0xfc0000ff;
+  }
+  Sim_Init(&sim);
   /*simulator実行部分*/
-  fprintf(stderr,"Execution started.\n");
-  while(sim.pc<n){
+  print_msg_sim_start();
+  gettimeofday(&t0,NULL);
+  while(sim.pc<n&&clocks<iter_max){
     /*FETCH*/
-    stop=Is_break(now.opcode);
-    if(stop||flag==STEP){
-      fprintf(stderr,"STEP No.%d.\n", sim.pc);
-      print_regs(sim);
-      fprintf(stderr,"clocks: %lld\n",clocks);
-      fprintf(stderr,"next instruct: ");
-      print_instr(instr[sim.pc],stderr);
-      fprintf(stderr,"\n");
-      while((ch = getchar())!=EOF){
-	if(ch=='\n') break;
-	if(ch=='s') flag=STEP;
-	else if(ch=='c') flag=CONTINUE;
-	else fprintf(stderr,"sim: Unknown command\n");
-      }
-      if(ch == EOF) {
-	fprintf(stderr,"step simulation cancelled.\n");
-	break;
-      }
+    if(sim.pc<0){
+      print_msg_sim_irraddr(sim.pc);
+      flag=-1;
+      break;
     }
-    instr_type=judge_type(now.opcode);
+    if((instr[sim.pc].opcode&0xfc0000ff)==0xfc0000ff){
+      now=bin[sim.pc];
+      if(!(now^0xffffffff))
+	break;
+      code_fetch(now,&(ins.opcode),ins.operands);
+      if(Is_break(instr[sim.pc].opcode))
+	Set_break(ins.opcode);
+      instr[sim.pc]=ins;
+    }else{
+      ins=instr[sim.pc];
+    }
+    stop = Is_break(ins.opcode);
+    if (stop || (mode == STEP)||clocks==0) {
+      fprintf(stderr, "STEP No.%d.\n", sim.pc);
+      print_regs(sim);
+      fprintf(stderr, "clocks: %lld\n", clocks);
+      fprintf(stderr, "next instruct: ");
+      print_instr(instr[sim.pc], stderr);
+      fprintf(stderr,"\n");
+      signal_go=0;
+      while ((ch = getchar()) != EOF&&!signal_go) {
+        if (ch == '\n'); 
+        else if (ch == 's') {
+	  mode = STEP;
+	  signal_go=1;
+	}
+        else if (ch == 'c'){
+	  mode = CONTINUE;
+	  signal_go=1;
+	}
+        else if (ch == 'l') {//l行先にブレークポイントをセットする（l行分実行する）
+          scanf("%d", &l);
+          Set_break(instr[sim.pc + l].opcode);
+          fprintf(stderr,"Break point set at %d.\n",l);
+        }
+        else if (ch == 'b') {//l行目にブレークポイントをセットする（第b行まで実行する）
+          scanf("%d", &l);
+          Set_break(instr[l].opcode);
+          fprintf(stderr,"Break point set at %d.\n",l);
+        }
+	else if (ch == 'd') {//l行目のブレークポイントを消去する
+          scanf("%d", &l);
+          Clear_break(instr[l].opcode);
+          fprintf(stderr,"Break point at %d deleted.\n",l);
+        }
+	else if (ch == 'q'){ //終了
+          flag=1;
+	  signal_go=1;
+	}
+	else if (ch == 'r'){//再実行
+	  Sim_fin(sim);
+	  Sim_Init(&sim);
+	  clocks=0;
+	  signal_go=1;
+	  ins=instr[0];
+	}
+	else if (ch == '?'){
+	  console_help();
+	}
+        else fprintf(stderr, "Simulator: Unknown command\n");
+      }
+
+      if(ch == EOF) {
+       fprintf(stderr,"step simulation cancelled.\n");
+       flag=1;
+      } 
+    }
+    if(flag!=0) break;
+    tmp.opcode=ins.opcode;
+    instr_type=judge_type(tmp.opcode);
     switch(instr_type){
     case TYPE_R: 
-      fetch_r(&instr_r,op,now);
+      fetch_r(&instr_r,NULL,tmp);
       break;
     case TYPE_I:
-      fetch_i(&instr_i,op,now);
+      fetch_i(&instr_i,NULL,tmp);
       break;
     case TYPE_J:
-      fetch_j(&instr_j,op,now);
+      fetch_j(&instr_j,NULL,tmp);
       break;
     }
+
     /*EXECUTE*/
     switch(instr_type){
     case TYPE_R: 
-      breaker=(*instr_r)(&sim,op[0],op[1],op[2],op[3]);
+      flag=(*instr_r)(&sim,ins.operands[0],ins.operands[1],ins.operands[2],ins.operands[3]);
       break;
     case TYPE_I:
-      breaker=(*instr_i)(&sim,op[0],op[1],op[2]);
+      flag=(*instr_i)(&sim,ins.operands[0],ins.operands[1],ins.operands[2]);
       break;
     case TYPE_J:
-      breaker=(*instr_j)(&sim,op[0]);
+      flag=(*instr_j)(&sim,ins.operands[0]);
       break;
     }
     clocks++;
-    if(breaker<0||breaker==65536){
+    if(flag<0||flag==65536){
       break;
     }
   }
+  fflush(stdout);
+  gettimeofday(&t,NULL);
   if(clocks>=iter_max){
-    fprintf(stderr,"Execution stopped; too long operation.\n");
-  }else if(breaker<0){
-    fprintf(stderr,"Fatal error occurred.\n");
+    print_msg_sim_stop();
+  }else if(flag<0){
+    print_msg_sim_fatal();
   }else{
-    fprintf(stderr,"Execution finished.\n");
+    print_msg_sim_finish();
   }
-  fprintf(stderr,"Execution finished.\n");
   print_regs(sim);
   fprintf(stderr,"clocks: %lld\n",clocks);
+  print_time(subtime(t,t0));
+  free(bin);
   free(instr);
+  Sim_fin(sim);
   return 0;
 }
 
@@ -225,9 +330,9 @@ int _sim_binary(int program_fd,char *output_instr_file_name){
       fclose(output_instr_file);
     }
     if(execute&&n>=0){
-      /*if(debug) step_simulation_bin(instr,pc);
-	else*/
-      simulation_bin(bin,pc);
+      if(debug) step_simulation_bin(bin,pc);
+	else
+	  simulation_bin(bin,pc);
     }    
     if(labels!=NULL)
       free(labels);
