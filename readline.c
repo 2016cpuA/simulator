@@ -738,7 +738,7 @@ int readline(int fd,Instr_list *instr_l){
 		fprintf(stderr,"Warning: align parameter too big.\n");
 	      }
 	    }else if(directive==_WORD){
-	      mem+=(align>4)?align:4;
+	      mem+=((align>4)?align:4)>>2;
 	      j_ep.opcode=_WORD;
 	      while(Is_Space(*now)){
 		now++;
@@ -755,7 +755,7 @@ int readline(int fd,Instr_list *instr_l){
 	      }else{
 		j_ep.operands[0]=0;
 	      }
-	      j_ep.operands[1]=(align>4)?align:4;
+	      j_ep.operands[1]=((align>4)?align:4)>>2;
 	      list_push(tail_prepare,j_ep);
 	      tail_prepare=tail_prepare->next;
 	      

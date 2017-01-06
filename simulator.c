@@ -19,7 +19,7 @@ extern int make_code(int out_fd,Instruct *instr,int n);
 extern int make_code_another(int out_fd,Instruct *instr,int n);
 static inline void Sim_Init(Simulator *sim) {
   int _i;
-  (*sim).mem=(char*)malloc(MEMSIZE*sizeof(char));
+  (*sim).mem=(int*)malloc(MEMSIZE*sizeof(int));
   do{
     for(_i=0;_i<MEMSIZE;_i++)
       (*sim).mem[_i]=0;

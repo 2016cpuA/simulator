@@ -257,9 +257,6 @@ void sim_libs(Simulator *sim,int label){
   case LIB_F_HALF:
     sim->freg[1]=(sim->freg[1])*0.5;
     break;
-  case DBG_PSTR:
-    fprintf(stderr,"%s\n",(sim->mem)+(sim->reg[1]));
-    break;
   }
 }
 
@@ -456,11 +453,8 @@ int instr_bne(Simulator *sim,int rs,int rt,int offset) {
 
 int instr_lw(Simulator *sim,int rbase,int rt,int offset) {
   int addr=sim->reg[rbase] + offset;
-  char *memory = sim->mem;
   if(0<=addr&&addr<MEMSIZE){
-    if(addr%4!=0) 
-      print_warn_sim("lw",sim->pc,"bad address",addr);
-    sim->reg[rt] = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
+    sim->reg[rt] = sim->mem[addr];
     Inc(sim->pc);
     return 0;
   }else{
@@ -471,18 +465,12 @@ int instr_lw(Simulator *sim,int rbase,int rt,int offset) {
 
 int instr_sw(Simulator *sim,int rbase,int rt,int offset) {
   int addr=sim->reg[rbase] + offset;
-  char *memory = sim->mem;
   /*for debug*/
   max_addr=(max_addr>sim->reg[rbase])?max_addr:sim->reg[rbase];
   /*sim->reg[16]=max_addr;*/
   /**/
   if(addr>=0&&addr<MEMSIZE){
-    if(addr%4!=0)
-      print_warn_sim("sw",sim->pc,"bad address",addr);
-    memory[addr]=(char)((sim->reg[rt])&0xff);
-    memory[addr+1]=(char)(((sim->reg[rt])&0xff00)>>8);
-    memory[addr+2]=(char)(((sim->reg[rt])&0xff0000)>>16);
-    memory[addr+3]=(char)(((sim->reg[rt])&0xff000000)>>24);
+    sim->mem[addr]=sim->reg[rt];
     Inc(sim->pc);
   }else{
     print_err_sim("sw",sim->pc,"invalid address",addr);
@@ -575,11 +563,9 @@ int instr_fclts(Simulator *sim,int fmt,int ft,int fs,int rd){
 /*浮動小数点・I形式*/
 int instr_flwc1(Simulator *sim,int rbase,int ft,int offset){
   int addr=sim->reg[rbase] + offset;
-  char *memory = sim->mem;
   union i_f dest;
   if(0<=addr&&addr<MEMSIZE){
-    if(addr%4!=0) print_warn_sim("lwc1",sim->pc,"bad address",addr); 
-    dest.i = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
+    dest.i = sim->mem[addr];
     sim->freg[ft] = dest.f;
     Inc(sim->pc);
     return 0;
@@ -590,15 +576,10 @@ int instr_flwc1(Simulator *sim,int rbase,int ft,int offset){
 }  
 int instr_fswc1(Simulator *sim,int rbase,int ft,int offset){
   int addr=sim->reg[rbase] + offset;
-  char *memory = sim->mem;
   union i_f src;
   if(addr>=0&&addr<MEMSIZE){
-    if(addr%4!=0) print_warn_sim("swc1",sim->pc,"bad address",addr);
     src.f=sim->freg[ft];
-    memory[addr]=(char)(src.i&0xff);
-    memory[addr+1]=(char)((src.i&0xff00)>>8);
-    memory[addr+2]=(char)((src.i&0xff0000)>>16);
-    memory[addr+3]=(char)((src.i&0xff000000)>>24);
+    sim->mem[addr]=src.i;
     Inc(sim->pc);
   }else{
     print_err_sim("swc1",sim->pc,"invalid address",addr);
