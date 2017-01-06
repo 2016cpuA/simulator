@@ -418,13 +418,13 @@ int instr_addi(Simulator *sim,int rs,int rt,int imm) {
 } 
 
 int instr_andi(Simulator *sim,int rs,int rt,int imm) {
-  sim->reg[rt] = sim->reg[rs] & imm;
+  sim->reg[rt] = sim->reg[rs] & (int)((unsigned int)imm&65535);
   Inc(sim->pc);
   return 0;
 }
 
 int instr_ori(Simulator *sim,int rs,int rt,int imm) {
-  sim->reg[rt] = sim->reg[rs] | imm;
+  sim->reg[rt] = sim->reg[rs] | (int)((unsigned int)imm&65535);
   Inc(sim->pc);
   return 0;
 }
