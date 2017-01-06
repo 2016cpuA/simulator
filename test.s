@@ -1,5 +1,2 @@
-main:
-	in	%r1
-	sw	%r1,0(%r30)
-	lw	%r2,1(%r30)
-	out	%r2
+	beq %r0,%r0,-1
+	halt

@@ -8,6 +8,7 @@
 #include "simulator.h"
 #include "instructs.h"
 #include "queue.h"
+#include "message.h"
 #include <sys/time.h>
 /*readline.cに定義*/
 extern Instruct *load_instruct(int fd,char* output_instr_file_name,int *size);
@@ -38,21 +39,27 @@ static inline void Sim_Init(Simulator *sim) {
 int debug,execute, statistics;
 int binary_output;
 long long int iter_max;
+union i_f{
+  int i;
+  float f;
+};
 void print_regs(Simulator sim) {
   int i;
+  union i_f tmp;
   fprintf(stderr, "GPRs:\n");
-  fprintf(stderr, "   %11d %11d %11d %11d %11d %11d %11d %11d\n--------------------------------------------------------------------------------------------------\n",0,1,2,3,4,5,6,7);
+  fprintf(stderr, "    %22d %22d %22d %22d\n-----------------------------------------------------------------------------------------------\n",0,1,2,3);
   for (i = 0; i < REGS; i++) {
-    if (i % 8 == 0) fprintf(stderr, "%2d:", i);
-    fprintf(stderr, "%11d ", sim.reg[i]);
-    if (i % 8 == 7) fprintf(stderr,"\n");
+    if (i % 4 == 0) fprintf(stderr, "%2d:", i);
+    fprintf(stderr, " \e[35m0x%08x \e[m%11d", sim.reg[i],sim.reg[i]);
+    if (i % 4 == 3) fprintf(stderr,"\n");
   }
   fprintf(stderr, "\nFPRs:\n");
-  fprintf(stderr, "   %11d %11d %11d %11d %11d %11d %11d %11d\n--------------------------------------------------------------------------------------------------\n",0,1,2,3,4,5,6,7);
+  fprintf(stderr, "    %22d %22d %22d %22d\n-----------------------------------------------------------------------------------------------\n",0,1,2,3);
   for (i = 0; i < FREGS; i++) {
-    if (i % 8 == 0) fprintf(stderr, "%2d:", i);
-    fprintf(stderr, "%11.4e ", sim.freg[i]);
-    if(i % 8 == 7) fprintf(stderr, "\n");
+    if (i % 4 == 0) fprintf(stderr, "%2d:", i);
+    tmp.f=sim.freg[i];
+    fprintf(stderr, " \e[35m0x%08x \e[m%11.4e", tmp.i,tmp.f);
+    if(i % 4 == 3) fprintf(stderr, "\n");
   }
 
   fprintf(stderr, "PC = %d\n", sim.pc);
@@ -339,12 +346,12 @@ int simulation(Instruct *instr, int n){
     stat_init(index,opcodes);
   Sim_Init(&sim);
   /*simulator実行部分*/
-  fprintf(stderr,"Execution started.\n");
+  print_msg_sim_start();
   gettimeofday(&t0,NULL);
   while(sim.pc<n&&clocks<iter_max){
     /*FETCH*/
     if(sim.pc<0){
-      fprintf(stderr,"Error: invalid instruction address %d.\n",sim.pc);
+      print_msg_sim_irraddr(sim.pc);
       fprintf(stderr,"Maybe caused by instruction");
       print_instr(now, stderr);
       fprintf(stderr,"\n");
@@ -386,11 +393,11 @@ int simulation(Instruct *instr, int n){
   fflush(stdout);
   gettimeofday(&t,NULL);
   if(clocks>=iter_max){
-    fprintf(stderr,"Execution stopped; too long operation.\n");
+    print_msg_sim_stop();
   }else if(flag<0){
-    fprintf(stderr,"Fatal error occurred.\n");
+    print_msg_sim_fatal();
   }else{
-    fprintf(stderr,"Execution finished.\n");
+    print_msg_sim_finish();
   }
   print_regs(sim);
   fprintf(stderr,"clocks: %lld\n",clocks);
@@ -438,15 +445,14 @@ int step_simulation(Instruct *instr, int n) {
     qi_init(&prev_access[i]);
   }
   qh_init(&prev_access_mem);
-  fprintf(stderr,"%d\n",NUM_INSTR_LIBFUN);
   if(statistics) 
     stat_init(index,opcodes);
   /*simulator実行部分*/
-  fprintf(stderr,"Execution started.\n");
+  print_msg_sim_start();
   while (sim.pc < n && clocks<iter_max){
     /*FETCH*/
     if(sim.pc<0){
-      fprintf(stderr,"Error: invalid instruction address %d.\n",sim.pc);
+      print_msg_sim_irraddr(sim.pc);
       fprintf(stderr,"Maybe caused by instruction ");
       print_instr(now, stderr);
       fprintf(stderr,"\n");
@@ -506,7 +512,7 @@ int step_simulation(Instruct *instr, int n) {
 	else if (ch == '?'){
 	  console_help();
 	}
-        else fprintf(stderr, "sim: Unknown command\n");
+        else fprintf(stderr, "Simulator: Unknown command\n");
       }
 
       if(ch == EOF) {
@@ -556,9 +562,9 @@ int step_simulation(Instruct *instr, int n) {
     }
   }
   if(clocks>=iter_max){
-    fprintf(stderr,"Execution stopped; too long operation.\n");
+    print_msg_sim_stop();
   }else if(breaker<0){
-    fprintf(stderr,"Fatal error occurred.\n");
+    print_msg_sim_fatal();
     if(breaker+64<REGS&&flag_float){
       fprintf(stderr,"Maybe caused by instruction ");
       print_instr(instr[qi_gettail(&prev_access_f[breaker+64])], stderr);
@@ -569,7 +575,7 @@ int step_simulation(Instruct *instr, int n) {
       fprintf(stderr," (index %d)\n",qi_gettail(&prev_access[breaker+64]));
     }
   }else{
-    fprintf(stderr,"Execution finished.\n");
+    print_msg_sim_finish();
   }
   print_regs(sim);
   fprintf(stderr,"clocks: %lld\n",clocks);

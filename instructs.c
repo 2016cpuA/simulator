@@ -2,7 +2,7 @@
 #include <string.h>
 #include <math.h>
 #include "instructs.h"
-
+#include "message.h"
 #define Print(text) fprintf(out_file,text)
 #define Inc(pc) ((pc)++)
 
@@ -312,7 +312,7 @@ int instr_jr(Simulator *sim,int rs,int rt,int rd,int sa) {
   (void)(rd);
   (void)(sa);
   if(sim->reg[rt]<0){
-    fprintf(stderr,"Error(jr; pc=%d): invalid instruction index %d\n",sim->pc,sim->reg[rt]);
+    print_err_sim("jr",sim->pc,"invalid instruction index",sim->reg[rt]);
     return rt-64;
   }else{
     sim->pc = sim->reg[rt];
@@ -435,8 +435,8 @@ int instr_ori(Simulator *sim,int rs,int rt,int imm) {
 int instr_beq(Simulator *sim,int rs,int rt,int offset) {
   if (sim->reg[rs] == sim->reg[rt]){
     if (sim->pc+offset<0){
-    fprintf(stderr,"Error(beq; pc=%d): invalid instruction index %d\n",sim->pc,sim->pc+offset);
-    return -1;
+      print_err_sim("beq",sim->pc,"invalid instruction index",sim->pc+offset);
+      return -1;
     }else
       sim->pc += offset;
   }else Inc(sim->pc);
@@ -446,8 +446,8 @@ int instr_beq(Simulator *sim,int rs,int rt,int offset) {
 int instr_bne(Simulator *sim,int rs,int rt,int offset) {
   if (sim->reg[rs] != sim->reg[rt])
     if (sim->pc+offset<0){
-      fprintf(stderr,"Error(bne; pc=%d): invalid instruction index %d\n",sim->pc,sim->pc+offset);
-    return -1;
+      print_err_sim("bne",sim->pc,"invalid instruction index",sim->pc+offset);
+      return -1;
     }else
       sim->pc += offset;
   else Inc(sim->pc);
@@ -458,12 +458,13 @@ int instr_lw(Simulator *sim,int rbase,int rt,int offset) {
   int addr=sim->reg[rbase] + offset;
   char *memory = sim->mem;
   if(0<=addr&&addr<MEMSIZE){
-    if(addr%4!=0) fprintf(stderr,"Warning(lw;pc=%d): bad address %d\n",sim->pc,addr);
+    if(addr%4!=0) 
+      print_warn_sim("lw",sim->pc,"bad address",addr);
     sim->reg[rt] = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
     Inc(sim->pc);
     return 0;
   }else{
-    fprintf(stderr,"Error(lw; pc=%d): invalid address %d\n",sim->pc,addr);
+    print_err_sim("lw",sim->pc,"invalid address",addr);
     return -1;
   }
 }
@@ -476,14 +477,15 @@ int instr_sw(Simulator *sim,int rbase,int rt,int offset) {
   /*sim->reg[16]=max_addr;*/
   /**/
   if(addr>=0&&addr<MEMSIZE){
-    if(addr%4!=0) fprintf(stderr,"Warning(sw;pc=%d): bad address %d\n",sim->pc,addr);
+    if(addr%4!=0)
+      print_warn_sim("sw",sim->pc,"bad address",addr);
     memory[addr]=(char)((sim->reg[rt])&0xff);
     memory[addr+1]=(char)(((sim->reg[rt])&0xff00)>>8);
     memory[addr+2]=(char)(((sim->reg[rt])&0xff0000)>>16);
     memory[addr+3]=(char)(((sim->reg[rt])&0xff000000)>>24);
     Inc(sim->pc);
   }else{
-    fprintf(stderr,"Error(sw; pc=%d): invalid address %d\n",sim->pc,addr);
+    print_err_sim("sw",sim->pc,"invalid address",addr);
     return -1;
   }
   return 0;
@@ -496,7 +498,7 @@ int instr_jal(Simulator *sim,int instr_index) {
     sim_libs(sim,instr_index);
     Inc(sim->pc);
   }else if(instr_index<0){
-    fprintf(stderr,"Error(jal; pc=%d): invalid instruction index %d\n",sim->pc,instr_index);
+    print_err_sim("jal",sim->pc,"invalid instruction index",instr_index);
     return -1;
   }else{
     sim->reg[31] = (sim->pc) +1;
@@ -511,7 +513,7 @@ int instr_j(Simulator *sim,int instr_index) {
     sim->pc=sim->reg[31];
     return 0;
   }else if(instr_index<0){
-    fprintf(stderr,"Error(j; pc=%d): invalid instruction index %d\n",sim->pc,instr_index);
+    print_err_sim("j",sim->pc,"invalid instruction index",instr_index);
     return -1;
   }else{
     if(sim->pc==instr_index)
@@ -576,13 +578,13 @@ int instr_flwc1(Simulator *sim,int rbase,int ft,int offset){
   char *memory = sim->mem;
   union i_f dest;
   if(0<=addr&&addr<MEMSIZE){
-    if(addr%4!=0) fprintf(stderr,"Warning(lwc1;pc=%d): bad address %d\n",sim->pc,addr);
+    if(addr%4!=0) print_warn_sim("lwc1",sim->pc,"bad address",addr); 
     dest.i = (((int)memory[addr]&0xff)|(((int)memory[addr+1]&0xff)<<8)|(((int)memory[addr+2]&0xff)<<16)|(((int)memory[addr+3]&0xff)<<24));
     sim->freg[ft] = dest.f;
     Inc(sim->pc);
     return 0;
   }else{
-    fprintf(stderr,"Error(lwc1; pc=%d): invalid address %d\n",sim->pc,addr);
+    print_err_sim("lwc1",sim->pc,"invalid address",addr);
     return -1;
   }
 }  
@@ -591,7 +593,7 @@ int instr_fswc1(Simulator *sim,int rbase,int ft,int offset){
   char *memory = sim->mem;
   union i_f src;
   if(addr>=0&&addr<MEMSIZE){
-    if(addr%4!=0) fprintf(stderr,"Warning(swc1;pc=%d): bad address %d\n",sim->pc,addr);
+    if(addr%4!=0) print_warn_sim("swc1",sim->pc,"bad address",addr);
     src.f=sim->freg[ft];
     memory[addr]=(char)(src.i&0xff);
     memory[addr+1]=(char)((src.i&0xff00)>>8);
@@ -599,7 +601,7 @@ int instr_fswc1(Simulator *sim,int rbase,int ft,int offset){
     memory[addr+3]=(char)((src.i&0xff000000)>>24);
     Inc(sim->pc);
   }else{
-    fprintf(stderr,"Error(swc1; pc=%d): invalid address %d\n",sim->pc,addr);
+    print_err_sim("swc1",sim->pc,"invalid address",addr);
     return -1;
   }
   return 0;

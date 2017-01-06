@@ -7,7 +7,6 @@
 #include <fcntl.h>
 #include "simulator.h"
 #include "instructs.h"
-
 #define Sim_Init(sim) int _i; (sim).mem=(char*)malloc(MEMSIZE*sizeof(char));do{ for(_i=0;_i<MEMSIZE;_i++) sim.mem[_i]=0; for(_i=0;_i<REGS;_i++){ (sim).reg[_i]=0; (sim).freg[_i]=0;}(sim).pc=0;} while(0);
 #define Is_break(opcode) ((opcode)&_BREAK)
 #define Clear_break(opcode) ((opcode)&MASK_OP_FUN)
@@ -25,6 +24,10 @@ void print_code(FILE *output_instr_file, unsigned int *bin, int n){
   Instruct ins;
   fprintf(output_instr_file,"pc\tcode    \tinstr\top1\top2\top3\top4\n");
   for(i=0;i<n;i++){
+    op[0]=0;
+    op[1]=0;
+    op[2]=0;
+    op[3]=0;
     fprintf(output_instr_file,"%d\t%08X\t",i,bin[i]);
     code_fetch(bin[i],&(ins.opcode),op);
     print_instr(ins,output_instr_file);
@@ -81,7 +84,7 @@ int simulation_bin(unsigned int *bin, int n){
     }
   }
   if(clocks>=iter_max){
-    fprintf(stderr,"Execution stopped; too long operation.\n");
+    fprintf(stderr,"\e[33;1mExecution stopped; too long operation.\e[m\n");
   }else if(flag<0){
     fprintf(stderr,"Fatal error occurred.\n");
   }else{
