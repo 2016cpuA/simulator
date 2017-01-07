@@ -46,7 +46,7 @@ unsigned int get_instr(char *name){
   }else if(!(x^0x6c77L)|!(x^0x4c57L)){
     return LW;
   }else if(!(x^0x6c61L)|!(x^0x4c41L)){
-x1    return LA;
+    return LA;
   }else if(!(x^0x6c69L)|!(x^0x4c49L)){
     return LI;
   }else if(!(x^0x7377L)|!(x^0x5357L)){
