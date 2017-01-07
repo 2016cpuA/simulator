@@ -46,7 +46,7 @@ unsigned int get_instr(char *name){
   }else if(!(x^0x6c77L)|!(x^0x4c57L)){
     return LW;
   }else if(!(x^0x6c61L)|!(x^0x4c41L)){
-    return LA;
+x1    return LA;
   }else if(!(x^0x6c69L)|!(x^0x4c49L)){
     return LI;
   }else if(!(x^0x7377L)|!(x^0x5357L)){
@@ -217,6 +217,7 @@ void sim_libs(Simulator *sim,int label){
     sim->freg[1]=fabsf(sim->freg[1]);
     break;
   case LIB_CR_ARRAY:
+    /*
     hp=sim->reg[_HP];
     max=sim->reg[1];
     int_init=sim->reg[2];
@@ -226,7 +227,18 @@ void sim_libs(Simulator *sim,int label){
     sim->reg[_HP]+=(sim->reg[1])*4;
     sim->reg[1]=hp;
     break;
+    */
+    hp=sim->reg[_HP];
+    max=sim->reg[1];
+    int_init=sim->reg[2];
+    for(i=0;i<max;i++){
+      *(int*)&(sim->mem[i+hp])=int_init;
+    }
+    sim->reg[_HP]+=(sim->reg[1]);
+    sim->reg[1]=hp;
+    break;
   case LIB_CR_ARRAY_F:
+    /*
     hp=sim->reg[_HP];
     max=sim->reg[1];
     fl_init=sim->freg[1];
@@ -234,6 +246,16 @@ void sim_libs(Simulator *sim,int label){
       *(float*)&(sim->mem[i*4+hp])=fl_init;
     }
     sim->reg[_HP]+=max*4; 
+    sim->reg[1]=hp;
+    break;
+    */
+    hp=sim->reg[_HP];
+    max=sim->reg[1];
+    fl_init=sim->freg[1];
+    for(i=0;i<max;i++){
+      *(float*)&(sim->mem[i+hp])=fl_init;
+    }
+    sim->reg[_HP]+=max; 
     sim->reg[1]=hp;
     break;
   case LIB_F_IS_0:
