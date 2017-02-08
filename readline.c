@@ -255,7 +255,7 @@ int convert_data(Instr_list *prepare,int *mem){
 	n_instr+=2;
       }
       if(data_lo!=0||(data_hi==0&&data_lo==0)){
-	ins.opcode=ORI;
+	ins.opcode=ADDI;
 	ins.operands[0]=1;
 	if(data_hi!=0)
 	  ins.operands[1]=1;
