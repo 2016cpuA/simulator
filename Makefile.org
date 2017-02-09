@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra 
+CFLAGS=-Wall -Wextra -g
 LMFLAG=-lm
 SRC=main.c message.c list.c queue.c simulator.c sim_binary.c fetch.c readline.c assemble.c instructs.c 
 OBJ=$(SRC:%.c=%.o)
