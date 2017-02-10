@@ -440,13 +440,17 @@ int instr_addi(Simulator *sim,int rs,int rt,int imm) {
 } 
 
 int instr_andi(Simulator *sim,int rs,int rt,int imm) {
-  sim->reg[rt] = sim->reg[rs] & imm;
+  int _imm = (int)((short)(imm&0xFFFF));
+
+  sim->reg[rt] = sim->reg[rs] & _imm;
   Inc(sim->pc);
   return 0;
 }
 
 int instr_ori(Simulator *sim,int rs,int rt,int imm) {
-  sim->reg[rt] = sim->reg[rs] | imm;
+  int _imm = (int)((short)(imm&0xFFFF));
+
+  sim->reg[rt] = sim->reg[rs] | _imm;
   Inc(sim->pc);
   return 0;
 }
