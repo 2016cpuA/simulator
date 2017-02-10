@@ -13,24 +13,25 @@
 #で、lib_assem.sとlib_assem_tail.sを使って実行
 
 ###設定ここから###
-TESTRT_DIR=../min-caml-word/raytracer
-LIB_DIR=../library
-SIM_DIR=./
+TESTRT_DIR=./min-caml-word/raytracer
+LIB_DIR=./library
+SIM_DIR=./simulator
 ###設定ここまで###
 
 if [ $1 = "testrt" ] ; then
     shift
     cat $LIB_DIR/lib_assem.s $TESTRT_DIR/testrt.s > $TESTRT_DIR/testrt_tmp.s
     sed -e "s/^[ \t]*halt[ \t]*#.*$\|^[ \t]*halt[ \t]*$/j\t_MAIN_PROGRAM_END/g" $TESTRT_DIR/testrt_tmp.s > $TESTRT_DIR/testrt_tmp_.s
-    cat $TESTRT_DIR/testrt_tmp_.s $LIB_DIR/lib_assem_tail.s > $TESTRT_DIR/testrt.s
-    $SIM_DIR/simulator $TESTRT_DIR/testrt.s -I 10000000000 -i ./simulator/contest.sld -o ./contest_lib.ppm -A ./testrt.coe -s
+    cat $TESTRT_DIR/testrt_tmp_.s $LIB_DIR/lib_assem_tail.s > $TESTRT_DIR/testrt_.s
+    $SIM_DIR/simulator $TESTRT_DIR/testrt_.s -I 5000000000 -i ./contest.bin -o ./contest_lib.ppm -A ./testrt.coe -s -nl testrt.out 
+    rm -r $TESTRT_DIR/testrt_tmp.s $TESTRT_DIR/testrt_tmp_.s $TESTRT_DIR/testrt_.s 
 else
     if [ $1 = "--use-lib-assem" ] ; then
 	shift
 	cat $LIB_DIR/lib_assem.s $1 > $1.tmp.s
-	sed -e "s/halt$/j\t_MAIN_PROGRAM_END/g" $1.tmp.s
-	cat $1.tmp.s $LIB_DIR/lib_assem_tail.s > $1_
-	FILE=$1
+	sed -e "s/^[ \t]*halt[ \t]*#.*$\|^[ \t]*halt[ \t]*$/j\t_MAIN_PROGRAM_END/g" $1.tmp.s
+	cat $1.tmp.s $LIB_DIR/lib_assem_tail.s > $1__.s
+	FILE=$1__.s
 	shift
 	$SIM_DIR/simulator $FILE $@ 
     fi
