@@ -80,10 +80,18 @@ int list_to_align(Instruct *instr_a,Instr_list *instr_l,int n){
   return 0;
 }
 
-void print_align(Instruct *instr_a,int n,FILE* out_file){
-  int i;
+void print_align(Instruct *instr_a,int n,Label *labels,int offset,FILE* out_file){
+  int i,l=0;
+  while(labels[l].type==SECTION_DATA)
+    l++;
   fprintf(out_file,"no\tinstr\top1\top2\top3\top4\n");
   for(i=0;i<n;i++){
+    if(labels[l].pc+offset==i){
+      fprintf(out_file,"%s:\n",labels[l].name);
+      l++;
+      while(labels[l].type==SECTION_DATA)
+	l++;
+    }
     fprintf(out_file,"%d\t",i);
     print_instr(instr_a[i],out_file);
     fprintf(out_file,"\t%d\t%d\t%d\t%d\n",instr_a[i].operands[0],instr_a[i].operands[1],instr_a[i].operands[2],instr_a[i].operands[3]);
@@ -783,7 +791,7 @@ int interpret(Instr_list *instr_l,char *buf,int bufsize,int pc){
   return err;
 }
 
-int readline(int fd,Instr_list *instr_l){
+int readline(int fd,Instr_list *instr_l,int *ofs){
   char buf[1024],tmp[65536];
   char text[65536];
   int c=0,i=0,l;
@@ -1019,12 +1027,11 @@ int readline(int fd,Instr_list *instr_l){
       
     }else{
       /*step 2*/
-      if(!debug)
-	free(labels);
       if(ret_status==0){
 	ret_status=l+offset;
       }
       list_free(prepare);
+      *ofs=offset;
     }
     /*ここまで*/
   }
@@ -1034,7 +1041,7 @@ int readline(int fd,Instr_list *instr_l){
 Instruct *load_instruct(int fd,char* output_instr_file_name,int *size){
   Instr_list *instr_l=list_init();
   Instruct *instr_a=NULL;
-  int l;
+  int l,offset;
   /*命令列出力用のファイルのオープン*/
   output_instr_file=NULL;
   if(output_instr_file_name!=NULL){
@@ -1043,13 +1050,16 @@ Instruct *load_instruct(int fd,char* output_instr_file_name,int *size){
       fprintf(stderr,"Warning: Could not open file '%s'\n",output_instr_file_name);
     }
   }
-  l=readline(fd,instr_l);
+  l=readline(fd,instr_l,&offset);
   if(l>0){
     instr_a=(Instruct*)malloc(l*sizeof(Instruct));
     list_to_align(instr_a,instr_l,l);
     list_free(instr_l);
     if(output_instr_file!=NULL)
-      print_align(instr_a,l,output_instr_file);
+      print_align(instr_a,l,labels,offset,output_instr_file);
+    if(!debug)
+      free(labels);
+
   }else{
     printf("Failed to load.\n");
     list_free(instr_l);
