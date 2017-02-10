@@ -7,15 +7,15 @@
 
 #$ ./simulator.sh testrt
 #で、testrt.sにライブラリを添付した上で.coeファイルの出力とシミュレーションの実行
-#$ ./simulator.sh  (オプション・ファイル名)
+#$ ./simulator.sh (ファイル名) (オプション)
 #で、通常の実行
-#$ ./simulator.sh --use-lib-assem
+#$ ./simulator.sh --use-lib-assem (ファイル名) (オプション)
 #で、lib_assem.sとlib_assem_tail.sを使って実行
 
 ###設定ここから###
-TESTRT_DIR=./min-caml-word/raytracer
-LIB_DIR=./library
-SIM_DIR=./simulator
+TESTRT_DIR=../min-caml-word/raytracer
+LIB_DIR=../library
+SIM_DIR=./
 ###設定ここまで###
 
 if [ $1 = "testrt" ] ; then
@@ -27,11 +27,14 @@ if [ $1 = "testrt" ] ; then
 else
     if [ $1 = "--use-lib-assem" ] ; then
 	shift
-	cat $LIB_DIR/lib_assem.s $TESTRT_DIR/testrt.s > $TESTRT_DIR/testrt_tmp.s
-	sed -e "s/halt$/j\t_MAIN_PROGRAM_END/g" $TESTRT_DIR/testrt_tmp.s
-	cat $TESTRT_DIR/testrt_tmp.s $LIB_DIR/lib_assem_tail.s > $TESTRT_DIR/testrt.s
+	cat $LIB_DIR/lib_assem.s $1 > $1.tmp.s
+	sed -e "s/halt$/j\t_MAIN_PROGRAM_END/g" $1.tmp.s
+	cat $1.tmp.s $LIB_DIR/lib_assem_tail.s > $1_
+	FILE=$1
+	shift
+	$SIM_DIR/simulator $FILE $@ 
     fi
-    $SIM_DIR/simulator $@
+    $SIM_DIR/simulator $@ 
 fi
 
 
