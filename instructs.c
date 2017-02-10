@@ -398,9 +398,8 @@ int instr_in(Simulator *sim,int rs,int rt,int rd,int sa){
   (sim->pc)++;
   size=(int)fread(buf, 1, 4, input_file);
   if(size<4){
-    for(;size<4;size++){
-      buf[size]=(unsigned char)255;
-    }
+    print_err_sim("in",sim->pc,"input file reached EOF",0);
+    return -1;
   }
   sim->reg[rd]=((int)(buf[0])<<24)|((int)(buf[1])<<16)|((int)(buf[2])<<8)|((int)(buf[3]));
   return 0;
@@ -564,6 +563,9 @@ int instr_fmuls(Simulator *sim,int fmt,int ft,int fs,int fd){
 int instr_fdivs(Simulator *sim,int fmt,int ft,int fs,int fd){
   (void)(fmt);
   float diver=sim->freg[ft],dived=sim->freg[fs];
+  if(diver==0){
+    print_warn_sim("div.s",sim->pc,"divided by ",diver);
+  } 
   sim->freg[fd]=dived/diver;
   Inc(sim->pc);
   return 0;
@@ -593,6 +595,9 @@ int instr_flwc1(Simulator *sim,int rbase,int ft,int offset){
   if(0<=addr&&addr<MEMSIZE){
     dest.i = sim->mem[addr];
     sim->freg[ft] = dest.f;
+    if(isnan(dest.f)){
+      print_warn_sim("lwc1",sim->pc,"NaN was loaded from address ",addr);
+    }
     Inc(sim->pc);
     return 0;
   }else{
