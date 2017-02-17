@@ -29,6 +29,7 @@
 #define SRL 2
 #define IN 0xEC000000
 #define OUT 0xF0000000
+#define OUTB 0xFC000000
 #define SWC1 0xE4000000
 #define LWC1 0xC4000000
 #define ADD_S 0x44000000
@@ -196,7 +197,9 @@ int instr_srl(Simulator *sim,int rs,int rt,int rd,int sa);
 int instr_in(Simulator *sim,int rs,int rt,int rd,int sa);
 /*read 4 bytes from stdin into rd)*/
 int instr_out(Simulator *sim,int rs,int rt,int rd,int sa);
-/*write 4 bytes from stdout into rsx*/
+/*write 4 bytes from rs into stdout*/
+int instr_outb(Simulator *sim,int rs,int rt,int rd,int sa);
+/*write 1 byte from rs into stdout*/
 
 /*形式Iの命令*/
 int instr_move(Simulator *sim,int rs,int rt,int imm);

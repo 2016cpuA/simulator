@@ -39,7 +39,8 @@ inline int judge_type(unsigned int opcode){
   case C_LE_S:
   case C_LT_S:
   case IN:
-  case OUT: return TYPE_R;break;
+  case OUT:
+  case OUTB:return TYPE_R;break;
   }
   /*fprintf(stderr,"Warning(simulator): unknown instruct\n");*/
   return TYPE_R;
@@ -105,6 +106,10 @@ inline int fetch_r(int (**instr)(Simulator*, int, int, int, int), int op[4], Ins
     break;
     /* OUT rs*/
   case OUT: if(instr!=NULL) *instr=instr_out;
+    if(op!=NULL){
+      op[0]=ins.operands[0];op[1]=0;op[2]=0;op[3]=0;}
+    break;
+  case OUTB: if(instr!=NULL) *instr=instr_outb;
     if(op!=NULL){
       op[0]=ins.operands[0];op[1]=0;op[2]=0;op[3]=0;}
     break;

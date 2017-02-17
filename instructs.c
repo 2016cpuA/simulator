@@ -71,6 +71,8 @@ unsigned int get_instr(char *name){
     return IN;
   }else if(!(x^0x6f7574L)|!(x^0x4f5554L)){
     return OUT;
+  }else if(!(x^0x6f757462L)|!(x^0x4f555442L)){
+    return OUTB;
   }else if(!(x^0x73776331L)|!(x^0x53574331L)){
     return SWC1;
   }else if(!(x^0x6c776331L)|!(x^0x4c574331L)){
@@ -89,6 +91,7 @@ unsigned int get_instr(char *name){
     return C_LE_S;
   }else if(!(x^0x632e6c742e73L)|!(x^0x432e4c542e53L)|!(x^0x432e6c742e73L)){
     return C_LT_S;
+
   }else if(!(x^0x6d756c74L)|!(x^0x4d554c54L)){
     return MULT;
   }else if(!(x^0x646976L)|!(x^0x444956L)){
@@ -134,6 +137,7 @@ void print_instr(Instruct instr,FILE* out_file){
   case SRL: Print("SRL");break;
   case IN: Print("IN");break;
   case OUT: Print("OUT");break;
+  case OUTB: Print("OUTB");break;
   case NOP: Print("NOP");break;  
   case MOVE: Print("MOVE");break;  
   case LWC1: Print("LWC1");break;  
@@ -420,6 +424,17 @@ int instr_out(Simulator *sim,int rs,int rt,int rd,int sa){
   return 0;
 }
 
+int instr_outb(Simulator *sim,int rs,int rt,int rd,int sa){
+  (void)(rd);
+  (void)(rt);
+  (void)(sa);
+  char buf;
+  int target = sim->reg[rs];
+  buf=(char)(target&0xff);
+  (sim->pc)++;
+  fwrite(&buf, 1, 1, output_file);
+  return 0;
+}
 
 /*形式Iの命令*/
 
