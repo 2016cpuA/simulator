@@ -1,7 +1,7 @@
 #ifndef SIM_H
 
 #define SIM_H
-#define MEMSIZE 524288
+#define MEMSIZE 131072
 #define REGS 32
 #define FREGS 32
 #define NUM_SIM_SYMBOLS 28
